@@ -22,7 +22,8 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=settings.get_cors_origins(),
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -72,7 +73,7 @@ def refresh_system_status() -> MacroSystemResponse:
 @app.post("/api/alert/telegram")
 def trigger_telegram_alert(
     background_tasks: BackgroundTasks,
-    dashboard_url: str = "https://cava-macro.vercel.app"
+    dashboard_url: str = settings.frontend_url
 ) -> Dict[str, Any]:
     """Manually or programmatically trigger a Telegram notification."""
     indicators, _ = get_macro_data(force_refresh=False)

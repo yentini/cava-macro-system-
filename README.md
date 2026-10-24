@@ -78,18 +78,32 @@ La aplicación web estará disponible en `http://localhost:5173`.
 
 ## ☁️ Despliegue en la Nube 100% Gratuito
 
-### A. Frontend en Vercel (Recomendado)
-1. Sube tu proyecto a un repositorio en **GitHub**.
-2. Conecta tu cuenta de GitHub en [vercel.com](https://vercel.com).
-3. Importa el repositorio y selecciona como Root Directory: `frontend`.
-4. Pulsa **Deploy**. Tendrás tu PWA con HTTPS gratuito en 1 minuto. Puedes añadirla a la pantalla de inicio de tu iPhone o Android como una app nativa.
+### A. Backend en Render (Gratis) — Despliegue en 2 minutos
+1. Crea una cuenta gratuita en [render.com](https://render.com).
+2. Haz clic en **New +** y selecciona **Blueprint** (o **Web Service**).
+3. Conecta tu repositorio de GitHub `cava-macro-system-`. Render detectará automáticamente el archivo [render.yaml](file:///c:/Users/ccabrerizo/Documents/ANTIGRAVITY/CAVA/render.yaml).
+   - *(Si eliges Web Service manual)*:
+     - **Root Directory**: `backend`
+     - **Environment**: `Python 3`
+     - **Build Command**: `pip install -r requirements.txt`
+     - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. En **Environment Variables**, añade:
+   - `FRED_API_KEY`: Tu clave API de FRED (`d4ceac1ada227730f5686ad09ddbc864`).
+   - `TELEGRAM_BOT_TOKEN`: (Opcional) Tu token de BotFather.
+   - `TELEGRAM_CHAT_ID`: (Opcional) Tu Chat ID.
+5. Pulsa **Deploy**. Una vez completado, Render te proporcionará tu URL pública (ejemplo: `https://cava-macro-backend.onrender.com`).
 
-### B. Backend en Render (Gratis)
-1. En [render.com](https://render.com), crea un nuevo **Web Service**.
-2. Conecta tu repositorio de GitHub y selecciona como Root Directory: `backend`.
-3. Build Command: `pip install -r requirements.txt`
-4. Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Añade las variables de entorno (`FRED_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`).
+### B. Frontend en Vercel (Recomendado) — Despliegue en 1 minuto
+1. Entra en [vercel.com](https://vercel.com) e inicia sesión con GitHub.
+2. Pulsa **Add New...** ➔ **Project** e importa `cava-macro-system-`.
+3. En la configuración del proyecto:
+   - **Root Directory**: Pulsa *Edit* y selecciona la carpeta `frontend`.
+   - **Framework Preset**: Detectará automáticamente `Vite`.
+4. Despliega la sección **Environment Variables** y añade:
+   - Key: `VITE_API_URL`
+   - Value: La URL de tu backend en Render (ej: `https://cava-macro-backend.onrender.com`).
+5. Pulsa **Deploy**.
+6. ¡Listo! Tendrás tu dashboard en una URL HTTPS con soporte PWA instalable en iOS y Android.
 
 ### C. Alerta Automática Diaria (GitHub Actions Cron)
 El repositorio ya incluye el flujo `.github/workflows/daily_check.yml`:

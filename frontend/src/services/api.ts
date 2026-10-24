@@ -1,6 +1,7 @@
 import { MacroSystemResponse, ChartDataPoint } from '../types';
 
-const API_BASE = '/api';
+const rawBase = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api').trim();
+const API_BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/$/, '')}/api`;
 
 export const fallbackMockData: MacroSystemResponse = {
   updated_at: new Date().toLocaleString('es-ES'),
