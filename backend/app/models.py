@@ -106,8 +106,17 @@ class TechnicalIndicators(BaseModel):
     # Liquidity & Macro dynamic indicators (FRED)
     fed_balance_trillions: float
     fed_balance_change_pct: float = 0.0
+    fed_net_liquidity_trillions: float = 5.80
+    fed_net_liquidity_change_pct: float = 0.54
+    tga_billions: float = 952.0
+    rrp_billions: float = 0.24
     hy_oas_spread: float = 3.40
     yield_curve_10y2y: float = 0.31
+
+    # Volatility term structure & Dollar index
+    vix_term_ratio: float = 0.95  # VIX / VIX3M (<1.0 Contango = Calma, >1.0 Backwardation = Pánico)
+    vix_term_structure: str = "CONTANGO"
+    dxy_value: float = 101.8
 
     # Options Quadruple Witching dynamics
     is_options_window: bool
@@ -133,11 +142,15 @@ class DecisionResult(BaseModel):
     regime_steps: List[str] = Field(default_factory=list)
 
 class ChartDataPoint(BaseModel):
-    """Single point for time series charts."""
+    """Single point for time series charts with optional OHLCV candle data."""
     date: str
     price: float
     ema: Optional[float] = None
     rsi: Optional[float] = None
+    open: Optional[float] = None
+    high: Optional[float] = None
+    low: Optional[float] = None
+    volume: Optional[float] = None
 
 class MacroSystemResponse(BaseModel):
     """Complete payload for frontend dashboard."""

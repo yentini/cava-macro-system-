@@ -112,18 +112,27 @@ def score_us10y(ind: TechnicalIndicators) -> RuleCheck:
 
 
 def score_vix(ind: TechnicalIndicators) -> RuleCheck:
-    """Fear gauge: VIX tiers (<16 = 12, 16-22 = 6, >22 = 0)."""
+    """Fear gauge: VIX tiers (<16 = 12, 16-22 = 6, >22 = 0) enriched with VIX/VIX3M term structure."""
     vix = ind.vix_value
+    term_ratio = getattr(ind, "vix_term_ratio", 0.95)
+    structure = getattr(ind, "vix_term_structure", "CONTANGO")
+    term_info = f" | Term: {term_ratio:.2f} ({structure})"
+
     if vix < VIX_CALM:
-        points, condition = 12, "Menor de 16 (calma)"
+        points, condition = 12, f"Menor de 16 (calma){term_info}"
     elif vix <= VIX_STRESS:
-        points, condition = 6, "Entre 16 y 22 (moderado)"
+        points, condition = 6, f"Entre 16 y 22 (moderado){term_info}"
     else:
-        points, condition = 0, "Mayor de 22 (estrés)"
+        points, condition = 0, f"Mayor de 22 (estrés){term_info}"
+
+    # Penalize if VIX curve is inverted (backwardation: short-term panic)
+    if term_ratio > 1.05 and points >= 2:
+        points -= 2
+
     return build_rule(
-        "vix", "Volatilidad VIX", f"{vix:.1f}", condition, points, 12,
-        "Mide el miedo en opciones. Pesa menos que el crédito porque a veces da sustos falsos, "
-        "pero un VIX alto confirma que las manos fuertes están comprando protección.",
+        "vix", "Volatilidad VIX & Curva Temporal", f"{vix:.1f} ({structure})", condition, points, 12,
+        f"Mide el miedo en opciones y la estructura temporal (VIX / VIX3M: {term_ratio:.2f}). "
+        f"{'Estructura en Contango normal (<1.00) que confirma estabilidad de fondo.' if structure == 'CONTANGO' else 'Estructura en Backwardation (>1.00) que denota compras agresivas de coberturas a corto plazo.'}",
     )
 
 

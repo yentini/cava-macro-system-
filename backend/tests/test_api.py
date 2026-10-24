@@ -22,7 +22,10 @@ def test_api_status():
     assert "decision" in data
     assert "gauges" in data
     assert "indicators" in data
-    assert len(data["gauges"]) == 10
+    assert len(data["gauges"]) == 11
+    gauge_ids = [g["id"] for g in data["gauges"]]
+    assert "fed_net_liquidity" in gauge_ids
+    assert "hyg_ema" in gauge_ids
     assert data["decision"]["score_conviction"] > 0
     assert "confluence_index" in data["decision"]
     assert "cross_rules" in data["decision"]
@@ -41,3 +44,6 @@ def test_api_chart_history():
     assert "date" in first_pt
     assert "price" in first_pt
     assert "ema" in first_pt
+    assert "open" in first_pt
+    assert "high" in first_pt
+    assert "low" in first_pt

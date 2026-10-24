@@ -6,7 +6,12 @@ import sys
 import logging
 from app.data_service import get_macro_data
 from app.decision_engine import evaluate_combined_system
-from app.telegram_service import format_telegram_alert, send_telegram_message
+from app.regime_state import check_and_update_regime
+from app.telegram_service import (
+    format_regime_change_alert,
+    format_telegram_alert,
+    send_telegram_message
+)
 
 # Ensure UTF-8 output on Windows consoles
 if hasattr(sys.stdout, "reconfigure"):
@@ -26,7 +31,18 @@ def main():
     logger.info("S&P 500 Action: %s", decision.action_sp500)
     logger.info("Gold Action: %s", decision.action_gold)
 
-    message = format_telegram_alert(decision, indicators)
+    # Check for regime transition
+    has_changed, prev_regime = check_and_update_regime(
+        current_regime=decision.regime.value,
+        metadata={"confluence_index": decision.confluence_index, "score_conviction": decision.score_conviction}
+    )
+
+    if has_changed and prev_regime:
+        logger.warning("REGIME TRANSITION DETECTED: %s -> %s", prev_regime, decision.regime.value)
+        message = format_regime_change_alert(prev_regime, decision, indicators)
+    else:
+        message = format_telegram_alert(decision, indicators)
+
     print("\n--- FORMATTED TELEGRAM ALERT ---\n")
     print(message)
     print("\n--------------------------------\n")

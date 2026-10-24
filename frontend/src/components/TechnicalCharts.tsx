@@ -72,6 +72,7 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
   const [period, setPeriod] = useState<PeriodType>('1y');
   const [interval, setInterval] = useState<IntervalType>('1wk');
   const [chartData, setChartData] = useState<ChartDataPoint[]>(spyData);
+  const [chartType, setChartType] = useState<'line' | 'candle'>('line');
   const [isLoading, setIsLoading] = useState(false);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -139,8 +140,10 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
 
   const prices = chartData.map((d) => d.price);
   const emas = chartData.map((d) => d.ema || d.price);
-  const minVal = Math.min(...prices, ...emas) * 0.985;
-  const maxVal = Math.max(...prices, ...emas) * 1.015;
+  const highs = chartData.map((d) => d.high ?? Math.max(d.price, d.open ?? d.price));
+  const lows = chartData.map((d) => d.low ?? Math.min(d.price, d.open ?? d.price));
+  const minVal = Math.min(...prices, ...emas, ...lows) * 0.985;
+  const maxVal = Math.max(...prices, ...emas, ...highs) * 1.015;
   const valRange = maxVal - minVal || 1;
 
   const getX = (idx: number) => {
@@ -377,6 +380,35 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
           </div>
         </div>
 
+        {/* Tipo de Gráfico (Línea vs Velas Japonesas) */}
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1">
+            Vista:
+          </span>
+          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-gray-800">
+            <button
+              onClick={() => setChartType('line')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition text-[11px] flex items-center gap-1 ${
+                chartType === 'line'
+                  ? 'bg-amber-500 text-black shadow font-extrabold'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              📈 Línea
+            </button>
+            <button
+              onClick={() => setChartType('candle')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition text-[11px] flex items-center gap-1 ${
+                chartType === 'candle'
+                  ? 'bg-amber-500 text-black shadow font-extrabold'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              🕯️ Velas
+            </button>
+          </div>
+        </div>
+
         {/* Refresh / Loader indicator */}
         <div className="flex items-center gap-2">
           {isLoading ? (
@@ -441,6 +473,19 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
             <span className="text-gray-400 font-bold uppercase text-[10px]">RSI(14):</span>
             <span className="font-mono font-bold text-sm text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-lg border border-purple-500/30">
               {activePoint.rsi.toFixed(1)}
+            </span>
+          </div>
+        )}
+
+        {/* OHLC metrics when hovering in candle or detailed mode */}
+        {activePoint?.open !== undefined && (
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 font-bold uppercase text-[10px]">OHLC:</span>
+            <span className="font-mono text-xs text-gray-300 bg-gray-900 px-2.5 py-1 rounded-lg border border-gray-800 flex gap-2">
+              <span>A: <strong className="text-gray-100">${activePoint.open.toFixed(2)}</strong></span>
+              <span>M: <strong className="text-emerald-400">${(activePoint.high ?? activePoint.price).toFixed(2)}</strong></span>
+              <span>m: <strong className="text-rose-400">${(activePoint.low ?? activePoint.price).toFixed(2)}</strong></span>
+              <span>C: <strong style={{ color: config.priceColor }}>${activePoint.price.toFixed(2)}</strong></span>
             </span>
           </div>
         )}
@@ -551,15 +596,62 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
             opacity="0.9"
           />
 
-          {/* Price Polyline */}
-          <polyline
-            fill="none"
-            stroke={config.priceColor}
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={pricePoints}
-          />
+          {/* Line Chart View */}
+          {chartType === 'line' && (
+            <polyline
+              fill="none"
+              stroke={config.priceColor}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              points={pricePoints}
+            />
+          )}
+
+          {/* Candlestick Chart View */}
+          {chartType === 'candle' && (
+            <g className="candlesticks">
+              {chartData.map((d, i) => {
+                const o = d.open ?? d.price;
+                const c = d.price;
+                const h = d.high ?? Math.max(o, c);
+                const l = d.low ?? Math.min(o, c);
+                const isGreen = c >= o;
+                const candleColor = isGreen ? '#10b981' : '#ef4444';
+                const wickX = getX(i);
+                const topBody = getY(Math.max(o, c));
+                const btmBody = getY(Math.min(o, c));
+                const bodyHeight = Math.max(2, btmBody - topBody);
+                const candleW = Math.max(3, Math.min(10, (innerWidth / chartData.length) * 0.65));
+
+                return (
+                  <g key={i}>
+                    {/* Upper and Lower Wick */}
+                    <line
+                      x1={wickX}
+                      y1={getY(h)}
+                      x2={wickX}
+                      y2={getY(l)}
+                      stroke={candleColor}
+                      strokeWidth="1.2"
+                      opacity="0.85"
+                    />
+                    {/* Candle Real Body */}
+                    <rect
+                      x={wickX - candleW / 2}
+                      y={topBody}
+                      width={candleW}
+                      height={bodyHeight}
+                      fill={candleColor}
+                      stroke={candleColor}
+                      strokeWidth="0.5"
+                      rx="1"
+                    />
+                  </g>
+                );
+              })}
+            </g>
+          )}
 
           {/* Interactive Hover Crosshair */}
           {hoverIndex !== null && chartData[hoverIndex] && (

@@ -3,6 +3,7 @@ import { fetchSystemStatus, refreshSystemStatus } from './services/api';
 import { MacroSystemResponse } from './types';
 import { Header } from './components/Header';
 import { RegimeBanner } from './components/RegimeBanner';
+import { PortfolioCalculator } from './components/PortfolioCalculator';
 import { GaugeChart } from './components/GaugeChart';
 import { ConfluenceMatrix } from './components/ConfluenceMatrix';
 import { TechnicalCharts } from './components/TechnicalCharts';
@@ -80,6 +81,11 @@ export const App: React.FC = () => {
             {mobileTab === 'decision' && (
               <div className="space-y-4">
                 <RegimeBanner decision={data.decision} />
+                <PortfolioCalculator
+                  regime={data.decision.regime}
+                  confluenceIndex={data.decision.confluence_index}
+                  scoreConviction={data.decision.score_conviction}
+                />
                 <div className="bg-[#111827] border border-gray-800 rounded-2xl p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -152,6 +158,15 @@ export const App: React.FC = () => {
           <div className="space-y-6 animate-fade-in">
             {/* Top Section: Master Decision Banner */}
             <RegimeBanner decision={data.decision} />
+
+            {/* Tactical Capital Allocation Calculator */}
+            <section>
+              <PortfolioCalculator
+                regime={data.decision.regime}
+                confluenceIndex={data.decision.confluence_index}
+                scoreConviction={data.decision.score_conviction}
+              />
+            </section>
 
             {/* Tacómetros (Half-Moon Gauges Grid) */}
             <section>

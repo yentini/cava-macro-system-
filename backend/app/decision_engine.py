@@ -295,6 +295,52 @@ def build_hyg_gauge(
     )
 
 
+def build_fed_net_liquidity_gauge(
+    net_liq_t: float,
+    net_liq_chg: float,
+    walcl_t: float,
+    tga_b: float,
+    rrp_b: float
+) -> GaugeMetric:
+    """Build the speedometer gauge for Fed Net Liquidity (WALCL - TGA - RRP)."""
+    is_expanding = net_liq_chg >= 0.0
+    return GaugeMetric(
+        id="fed_net_liquidity",
+        name="Liquidez Neta Fed (WALCL - TGA - RRP)",
+        current_value=round(net_liq_chg, 2),
+        display_value=f"${net_liq_t:.2f}T ({net_liq_chg:+.2f}% 4W)",
+        unit="%",
+        min_value=-5.0,
+        max_value=5.0,
+        zones=[
+            GaugeZone(from_val=-5.0, to_val=-1.0, color="#ef4444", label="Contracción Drenaje"),
+            GaugeZone(from_val=-1.0, to_val=0.5, color="#f59e0b", label="Neutral / Estable"),
+            GaugeZone(from_val=0.5, to_val=5.0, color="#10b981", label="Expansión Inyección")
+        ],
+        status_label="Expansión de Liquidez" if is_expanding else "Contracción Neta",
+        status_color="green" if is_expanding else ("yellow" if net_liq_chg >= -1.0 else "red"),
+        description=f"Balance: ${walcl_t:.2f}T | TGA: ${tga_b:.0f}B | RRP: ${rrp_b:.1f}B",
+        what_it_measures=(
+            "Mide la liquidez neta que realmente circula en el sistema financiero privado, calculada como: "
+            "Activos Fed (WALCL) menos Depósitos del Tesoro (TGA) menos Facilidad de Repo Inverso (RRP)."
+        ),
+        meaning=(
+            f"Liquidez neta en ${net_liq_t:.2f} Trillones con una variación a 4 semanas del {net_liq_chg:+.2f}%. "
+            + ("La liquidez disponible para activos de riesgo se está expandiendo, respaldando los múltiplos de valoración de las bolsas."
+               if is_expanding else
+               "Drenaje moderado de liquidez: el Tesoro está absorbiendo efectivo o la Fed continúa reduciendo su balance neto.")
+        ),
+        recommendation=(
+            "Viento de cola para activos de riesgo: la liquidez neta circulante apoya al S&P 500 y al oro."
+            if is_expanding else
+            "Vigilar la rotación de capital: con liquidez neutra o menguante las valoraciones dependen puramente de los beneficios empresariales."
+        ),
+        how_calculated=(
+            "Cálculo: (WALCL/1000) - (WTREGEN/1000) - RRPONTSYD. Compara el valor actual contra el de hace 4 semanas en la serie oficial de la Reserva Federal (FRED)."
+        )
+    )
+
+
 def build_gauge_metrics(
     ind: TechnicalIndicators,
     score_conviction: int = 85,
@@ -577,10 +623,17 @@ def build_gauge_metrics(
         hyg_diff_pct=ind.hyg_diff_pct,
         hyg_bullish=ind.hyg_bullish
     )
+    fed_gauge = build_fed_net_liquidity_gauge(
+        net_liq_t=getattr(ind, "fed_net_liquidity_trillions", 5.80),
+        net_liq_chg=getattr(ind, "fed_net_liquidity_change_pct", 0.54),
+        walcl_t=getattr(ind, "fed_balance_trillions", 6.75),
+        tga_b=getattr(ind, "tga_billions", 952.0),
+        rrp_b=getattr(ind, "rrp_billions", 0.24)
+    )
 
     return [
         confluence_gauge, conviction_gauge,
-        hyg_gauge,
+        fed_gauge, hyg_gauge,
         spy_gauge, spy_rsi_gauge, gold_gauge, rsi_gauge,
         yield_gauge, vix_gauge, breadth_gauge
     ]

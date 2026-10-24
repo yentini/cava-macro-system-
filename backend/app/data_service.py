@@ -148,34 +148,74 @@ def fetch_yfinance_daily(ticker: str, period: str = "1y") -> pd.DataFrame:
     df = df.dropna()
     return df
 
-def fetch_fred_indicators(api_key: str) -> Tuple[float, float, float, float, float]:
-    """Fetch Fed balance (WALCL) in Trillions, Fed 4W % change, HY OAS Spread, Nominal GDP YoY %, and 10Y-2Y Yield Curve."""
-    default_balance_t = 7.15  # Default ~7.15 Trillion
-    default_fed_change_pct = 0.0  # Default 0.0%
-    default_hy_spread = 3.20  # Default ~3.2%
-    default_nominal_gdp = 6.50  # Default ~6.5%
-    default_10y2y_curve = 0.30  # Default +0.30%
+def fetch_fred_indicators(api_key: str) -> Tuple[float, float, float, float, float, float, float, float, float]:
+    """Fetch Fed balance (WALCL), Fed 4W % change, HY OAS Spread, Nominal GDP YoY %, 10Y-2Y Yield Curve,
+    Fed Net Liquidity in Trillions (WALCL - TGA - RRP), Net Liquidity 4W % change, TGA in Billions, and RRP in Billions.
+    """
+    default_balance_t = 6.75  # ~6.75 Trillion
+    default_fed_change_pct = 0.09  # +0.09%
+    default_hy_spread = 3.20  # ~3.2%
+    default_nominal_gdp = 6.31  # ~6.31%
+    default_10y2y_curve = 0.31  # +0.31%
+    default_net_liq_t = 5.80  # ~5.80 Trillion
+    default_net_liq_change_pct = 0.54  # +0.54%
+    default_tga_b = 952.0  # ~$952B
+    default_rrp_b = 0.24  # ~$0.24B
+
     if not api_key or Fred is None:
-        return default_balance_t, default_fed_change_pct, default_hy_spread, default_nominal_gdp, default_10y2y_curve
+        return (
+            default_balance_t, default_fed_change_pct, default_hy_spread,
+            default_nominal_gdp, default_10y2y_curve, default_net_liq_t,
+            default_net_liq_change_pct, default_tga_b, default_rrp_b
+        )
 
     balance_trillions = default_balance_t
     fed_change_pct = default_fed_change_pct
     latest_spread = default_hy_spread
     nominal_gdp = default_nominal_gdp
     yield_curve_10y2y = default_10y2y_curve
+    net_liq_t = default_net_liq_t
+    net_liq_chg_pct = default_net_liq_change_pct
+    tga_billions = default_tga_b
+    rrp_billions = default_rrp_b
 
     try:
         fred = Fred(api_key=api_key)
         # WALCL is reported weekly in Millions
         walcl_series = fred.get_series("WALCL").dropna()
+        tga_series = fred.get_series("WTREGEN").dropna()
+        rrp_series = fred.get_series("RRPONTSYD").dropna()
+
         if not walcl_series.empty:
             latest_walcl_m = float(walcl_series.iloc[-1])
             balance_trillions = round(latest_walcl_m / 1_000_000, 2)
             if len(walcl_series) >= 5:
                 prev_4w_walcl_m = float(walcl_series.iloc[-5])
                 fed_change_pct = round(((latest_walcl_m - prev_4w_walcl_m) / prev_4w_walcl_m) * 100, 2)
+
+            # Net Liquidity = WALCL (Total Assets) - TGA (WTREGEN) - RRP (RRPONTSYD)
+            latest_tga_m = float(tga_series.iloc[-1]) if not tga_series.empty else (default_tga_b * 1000.0)
+            tga_billions = round(latest_tga_m / 1000.0, 1)
+
+            latest_rrp_b = float(rrp_series.iloc[-1]) if not rrp_series.empty else default_rrp_b
+            rrp_billions = round(latest_rrp_b, 2)
+
+            walcl_b = latest_walcl_m / 1000.0
+            tga_b = latest_tga_m / 1000.0
+            rrp_b = latest_rrp_b
+
+            current_net_liq_b = walcl_b - tga_b - rrp_b
+            net_liq_t = round(current_net_liq_b / 1000.0, 2)
+
+            if len(walcl_series) >= 5 and len(tga_series) >= 5:
+                prev_walcl_m = float(walcl_series.iloc[-5])
+                prev_tga_m = float(tga_series.iloc[-5])
+                prev_rrp_b = float(rrp_series.asof(walcl_series.index[-5])) if not rrp_series.empty else latest_rrp_b
+                prev_net_liq_b = (prev_walcl_m / 1000.0) - (prev_tga_m / 1000.0) - prev_rrp_b
+                if prev_net_liq_b > 0:
+                    net_liq_chg_pct = round(((current_net_liq_b - prev_net_liq_b) / prev_net_liq_b) * 100, 2)
     except Exception as exc:
-        logger.warning("Could not fetch WALCL from FRED: %s", exc)
+        logger.warning("Could not fetch Net Liquidity from FRED: %s", exc)
 
     try:
         fred = Fred(api_key=api_key)
@@ -204,7 +244,10 @@ def fetch_fred_indicators(api_key: str) -> Tuple[float, float, float, float, flo
     except Exception as exc:
         logger.warning("Could not fetch T10Y2Y from FRED: %s", exc)
 
-    return balance_trillions, fed_change_pct, latest_spread, nominal_gdp, yield_curve_10y2y
+    return (
+        balance_trillions, fed_change_pct, latest_spread, nominal_gdp,
+        yield_curve_10y2y, net_liq_t, net_liq_chg_pct, tga_billions, rrp_billions
+    )
 
 def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDataPoint]]]:
     """Generate realistic fallback indicators and charts if network is offline."""
@@ -227,17 +270,24 @@ def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[Char
         hyg_diff_pct=round(((79.20 - 77.80) / 77.80) * 100, 2),
         hyg_bullish=True,
         us10y_yield=4.24,
-        nominal_gdp_ref=6.5,
+        nominal_gdp_ref=6.31,
         yield_spread_safe=True,
         vix_value=14.2,
         vix_low=True,
         breadth_ratio=0.38,
         breadth_diff_pct=1.45,
         breadth_healthy=True,
-        fed_balance_trillions=7.12,
-        fed_balance_change_pct=0.15,
+        fed_balance_trillions=6.75,
+        fed_balance_change_pct=0.09,
+        fed_net_liquidity_trillions=5.80,
+        fed_net_liquidity_change_pct=0.54,
+        tga_billions=952.0,
+        rrp_billions=0.24,
         hy_oas_spread=3.40,
         yield_curve_10y2y=0.31,
+        vix_term_ratio=0.95,
+        vix_term_structure="CONTANGO",
+        dxy_value=101.8,
         is_options_window=is_options_expiration_window(),
         days_to_next_options=54,
         next_options_date="18/12/2026"
@@ -245,33 +295,62 @@ def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[Char
 
     dates = [(now - timedelta(weeks=i)).strftime("%Y-%m-%d") for i in range(52, -1, -1)]
     # SPY: Steady equity market climb with mid-cycle pullback and late surge
-    spy_chart = [
-        ChartDataPoint(
-            date=d,
-            price=round(470.0 + (i * 2.1) + 10.0 * np.sin(i / 5.0) + (i % 3), 2),
-            ema=round(465.0 + (i * 1.4), 2)
+    spy_chart = []
+    for i, d in enumerate(dates):
+        c = round(470.0 + (i * 2.1) + 10.0 * np.sin(i / 5.0) + (i % 3), 2)
+        o = round(c - (1.2 * np.sin(i * 1.7)) + 0.3, 2)
+        h = round(max(c, o) + abs(np.cos(i / 3.0)) * 2.5 + 0.8, 2)
+        l = round(min(c, o) - abs(np.sin(i / 2.5)) * 2.2 - 0.7, 2)
+        spy_chart.append(
+            ChartDataPoint(
+                date=d,
+                price=c,
+                ema=round(465.0 + (i * 1.4), 2),
+                open=o,
+                high=h,
+                low=l,
+                volume=round(65000000 + 15000000 * np.sin(i / 4.0), 0)
+            )
         )
-        for i, d in enumerate(dates)
-    ]
+
     # Gold (GLD): Parabolic gold rally in Spring, consolidation in Summer, new highs in Autumn
-    gold_chart = [
-        ChartDataPoint(
-            date=d,
-            price=round(185.0 + (35.0 / (1.0 + np.exp(-(i - 16) / 3.0))) + (32.0 / (1.0 + np.exp(-(i - 38) / 3.5))) + 3.0 * np.cos(i / 4.0), 2),
-            ema=round(184.0 + (i * 1.3), 2),
-            rsi=round(50.0 + 18.0 * np.sin(i / 4.0), 1)
+    gold_chart = []
+    for i, d in enumerate(dates):
+        c = round(185.0 + (35.0 / (1.0 + np.exp(-(i - 16) / 3.0))) + (32.0 / (1.0 + np.exp(-(i - 38) / 3.5))) + 3.0 * np.cos(i / 4.0), 2)
+        o = round(c - (1.0 * np.sin(i * 1.5)), 2)
+        h = round(max(c, o) + abs(np.sin(i / 3.5)) * 1.8 + 0.6, 2)
+        l = round(min(c, o) - abs(np.cos(i / 3.0)) * 1.6 - 0.5, 2)
+        gold_chart.append(
+            ChartDataPoint(
+                date=d,
+                price=c,
+                ema=round(184.0 + (i * 1.3), 2),
+                rsi=round(50.0 + 18.0 * np.sin(i / 4.0), 1),
+                open=o,
+                high=h,
+                low=l,
+                volume=round(8000000 + 2000000 * np.cos(i / 3.0), 0)
+            )
         )
-        for i, d in enumerate(dates)
-    ]
+
     # HYG: Credit bond ETF oscillating in tight band between 74 and 79
-    hyg_chart = [
-        ChartDataPoint(
-            date=d,
-            price=round(76.0 + 1.8 * np.sin(i / 6.0) + 0.3 * ((i % 4) - 1.5), 2),
-            ema=round(76.2 + 0.03 * i, 2)
+    hyg_chart = []
+    for i, d in enumerate(dates):
+        c = round(76.0 + 1.8 * np.sin(i / 6.0) + 0.3 * ((i % 4) - 1.5), 2)
+        o = round(c - 0.2 * np.cos(i / 2.0), 2)
+        h = round(max(c, o) + 0.45, 2)
+        l = round(min(c, o) - 0.40, 2)
+        hyg_chart.append(
+            ChartDataPoint(
+                date=d,
+                price=c,
+                ema=round(76.2 + 0.03 * i, 2),
+                open=o,
+                high=h,
+                low=l,
+                volume=round(35000000 + 8000000 * np.sin(i / 5.0), 0)
+            )
         )
-        for i, d in enumerate(dates)
-    ]
 
     charts = {
         "spy": spy_chart,
@@ -288,12 +367,33 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
         hyg_df = fetch_yfinance_weekly("HYG", period="2y")
         tnx_df = fetch_yfinance_daily("^TNX", period="1y")
 
-        # Fetch VIX and Russell 2000 (IWM) for breadth
+        # Fetch VIX, VIX3M and DXY
         vix_val = 14.5
+        vix_term_ratio = 0.95
+        vix_term_structure = "CONTANGO"
+        dxy_val = 101.8
+
         try:
-            vix_df = fetch_yfinance_daily("^VIX", period="1mo")
+            vix_df = fetch_yahoo_direct_candles("^VIX", range_str="1mo", interval_str="1d")
             if not vix_df.empty:
                 vix_val = float(vix_df["Close"].iloc[-1])
+        except Exception:
+            pass
+
+        try:
+            vix3m_df = fetch_yahoo_direct_candles("^VIX3M", range_str="1mo", interval_str="1d")
+            if not vix3m_df.empty:
+                vix3m_val = float(vix3m_df["Close"].iloc[-1])
+                if vix3m_val > 0:
+                    vix_term_ratio = round(vix_val / vix3m_val, 2)
+                    vix_term_structure = "BACKWARDATION" if vix_term_ratio > 1.0 else "CONTANGO"
+        except Exception:
+            pass
+
+        try:
+            dxy_df = fetch_yahoo_direct_candles("DX-Y.NYB", range_str="1mo", interval_str="1d")
+            if not dxy_df.empty:
+                dxy_val = round(float(dxy_df["Close"].iloc[-1]), 2)
         except Exception:
             pass
 
@@ -338,7 +438,10 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
         hyg_ema20 = float(last_hyg["EMA20"])
         hyg_diff = round(((hyg_price - hyg_ema20) / hyg_ema20) * 100, 2)
 
-        fed_bal, fed_chg, oas_spread, gdp_growth, curve_10y2y = fetch_fred_indicators(settings.fred_api_key)
+        (
+            fed_bal, fed_chg, oas_spread, gdp_growth, curve_10y2y,
+            net_liq_t, net_liq_chg, tga_b, rrp_b
+        ) = fetch_fred_indicators(settings.fred_api_key)
         is_opt_win, opt_days, opt_date = calculate_options_expiration_metrics()
 
         indicators = TechnicalIndicators(
@@ -368,8 +471,15 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
             breadth_healthy=breadth_ok,
             fed_balance_trillions=fed_bal,
             fed_balance_change_pct=fed_chg,
+            fed_net_liquidity_trillions=net_liq_t,
+            fed_net_liquidity_change_pct=net_liq_chg,
+            tga_billions=tga_b,
+            rrp_billions=rrp_b,
             hy_oas_spread=oas_spread,
             yield_curve_10y2y=curve_10y2y,
+            vix_term_ratio=vix_term_ratio,
+            vix_term_structure=vix_term_structure,
+            dxy_value=dxy_val,
             is_options_window=is_opt_win,
             days_to_next_options=opt_days,
             next_options_date=opt_date
@@ -384,7 +494,11 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
             ChartDataPoint(
                 date=idx.strftime("%Y-%m-%d"),
                 price=round(float(row["Close"]), 2),
-                ema=round(float(row["EMA50"]), 2)
+                ema=round(float(row["EMA50"]), 2),
+                open=round(float(row["Open"]), 2) if "Open" in row and not pd.isna(row["Open"]) else None,
+                high=round(float(row["High"]), 2) if "High" in row and not pd.isna(row["High"]) else None,
+                low=round(float(row["Low"]), 2) if "Low" in row and not pd.isna(row["Low"]) else None,
+                volume=round(float(row["Volume"]), 0) if "Volume" in row and not pd.isna(row["Volume"]) else None
             )
             for idx, row in spy_tail.iterrows()
         ]
@@ -393,7 +507,11 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
                 date=idx.strftime("%Y-%m-%d"),
                 price=round(float(row["Close"]), 2),
                 ema=round(float(row["EMA50"]), 2),
-                rsi=round(float(row["RSI14"]), 1)
+                rsi=round(float(row["RSI14"]), 1),
+                open=round(float(row["Open"]), 2) if "Open" in row and not pd.isna(row["Open"]) else None,
+                high=round(float(row["High"]), 2) if "High" in row and not pd.isna(row["High"]) else None,
+                low=round(float(row["Low"]), 2) if "Low" in row and not pd.isna(row["Low"]) else None,
+                volume=round(float(row["Volume"]), 0) if "Volume" in row and not pd.isna(row["Volume"]) else None
             )
             for idx, row in gld_tail.iterrows()
         ]
@@ -401,7 +519,11 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
             ChartDataPoint(
                 date=idx.strftime("%Y-%m-%d"),
                 price=round(float(row["Close"]), 2),
-                ema=round(float(row["EMA20"]), 2)
+                ema=round(float(row["EMA20"]), 2),
+                open=round(float(row["Open"]), 2) if "Open" in row and not pd.isna(row["Open"]) else None,
+                high=round(float(row["High"]), 2) if "High" in row and not pd.isna(row["High"]) else None,
+                low=round(float(row["Low"]), 2) if "Low" in row and not pd.isna(row["Low"]) else None,
+                volume=round(float(row["Volume"]), 0) if "Volume" in row and not pd.isna(row["Volume"]) else None
             )
             for idx, row in hyg_tail.iterrows()
         ]
@@ -495,12 +617,20 @@ def generate_fallback_chart_history(
         date_curr = start_date + timedelta(days=i * days_step)
 
         if i % step_skip == 0 or i == num_points - 1:
+            price_val = round(float(current_price), 2)
+            open_val = round(price_val - (0.6 * np.sin(i * 1.8)), 2)
+            high_val = round(max(price_val, open_val) + abs(np.cos(i * 2.1)) * 1.4 + 0.3, 2)
+            low_val = round(min(price_val, open_val) - abs(np.sin(i * 2.3)) * 1.3 - 0.2, 2)
             points.append(
                 ChartDataPoint(
                     date=date_curr.strftime("%Y-%m-%d"),
-                    price=round(float(current_price), 2),
+                    price=price_val,
                     ema=round(float(ema_val), 2),
-                    rsi=round(float(rsi_val), 1) if ticker_u in ("GLD", "SPY") else None
+                    rsi=round(float(rsi_val), 1) if ticker_u in ("GLD", "SPY") else None,
+                    open=open_val,
+                    high=high_val,
+                    low=low_val,
+                    volume=round(40000000 + 10000000 * np.sin(i / 4.0), 0)
                 )
             )
 
@@ -562,7 +692,11 @@ def fetch_chart_history(
                 date=idx.strftime("%Y-%m-%d"),
                 price=round(float(row["Close"]), 2),
                 ema=round(float(row["EMA"]), 2),
-                rsi=round(float(row["RSI14"]), 1) if ticker_clean in ("GLD", "SPY") else None
+                rsi=round(float(row["RSI14"]), 1) if ticker_clean in ("GLD", "SPY") else None,
+                open=round(float(row["Open"]), 2) if "Open" in row and not pd.isna(row["Open"]) else None,
+                high=round(float(row["High"]), 2) if "High" in row and not pd.isna(row["High"]) else None,
+                low=round(float(row["Low"]), 2) if "Low" in row and not pd.isna(row["Low"]) else None,
+                volume=round(float(row["Volume"]), 0) if "Volume" in row and not pd.isna(row["Volume"]) else None
             )
             for idx, row in df.iterrows()
         ]

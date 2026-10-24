@@ -51,8 +51,46 @@ def format_telegram_alert(
         f"{hyg_icon} *Bonos Basura (HYG):* ${ind.hyg_price:.2f} (Media 20W: ${ind.hyg_ema20:.2f})\n"
         f"{yield_icon} *Bono USA 10Y:* {ind.us10y_yield:.2f}% (PIB Nominal: {ind.nominal_gdp_ref:.2f}%)\n"
         f"💳 *Spread Crédito OAS:* {ind.hy_oas_spread:.2f}% | *Curva 10Y-2Y:* {ind.yield_curve_10y2y:+.2f}%\n"
+        f"🌪️ *Volatilidad VIX:* {ind.vix_value:.1f} ({getattr(ind, 'vix_term_structure', 'CONTANGO')} | Ratio: {getattr(ind, 'vix_term_ratio', 0.95):.2f}) | *Dólar DXY:* {getattr(ind, 'dxy_value', 101.8):.1f}\n"
         f"⚡ *Gatillo Opciones / Pánico:* {trigger_icon} ({'Activo ahora' if ind.is_options_window else f'Próximo {ind.next_options_date} ({ind.days_to_next_options}d)'})\n"
-        f"🏛️ *Balance Fed:* ~${ind.fed_balance_trillions:.2f}T ({ind.fed_balance_change_pct:+.2f}% 4W)"
+        f"🏛️ *Liquidez Neta Fed:* ${getattr(ind, 'fed_net_liquidity_trillions', 5.80):.2f}T ({getattr(ind, 'fed_net_liquidity_change_pct', 0.54):+.2f}% 4W) | Balance: ${ind.fed_balance_trillions:.2f}T"
+        f"{url_footer}"
+    )
+    return message
+
+def format_regime_change_alert(
+    previous_regime: str,
+    decision: DecisionResult,
+    ind: TechnicalIndicators,
+    dashboard_url: Optional[str] = None
+) -> str:
+    """Format high-priority urgent Telegram alert when a regime transition is detected."""
+    status_emoji = {
+        "green": "🟢",
+        "yellow": "🟡",
+        "red": "🔴",
+        "blue": "🔵"
+    }.get(decision.status_color, "⚪")
+
+    url_footer = f"\n\n📱 [Abrir Cuadro de Mando en Vivo]({dashboard_url})" if dashboard_url else ""
+
+    message = (
+        f"🚨 *¡ALERTA CRÍTICA: CAMBIO DE RÉGIMEN MACRO!* 🚨\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔄 *Transición:* `{previous_regime}` ➡️ {status_emoji} *{decision.regime_title}*\n"
+        f"⚡ *Índice de Confluencia:* *{decision.confluence_index}/100*\n"
+        f"🎯 *Convicción del Sistema:* *{decision.score_conviction}%*\n\n"
+        f"📋 *Motivo / Detonante del Cambio:*\n"
+        f"_{decision.rationale}_\n\n"
+        f"⚠️ *ACCIÓN TÁCTICA INMEDIATA:*\n"
+        f"• *S&P 500:* *{decision.action_sp500}*\n"
+        f"• *ORO:* *{decision.action_gold}*\n\n"
+        f"🔍 *Métricas Clave de la Transición:*\n"
+        f"• *S&P 500:* ${ind.spy_price:.2f} ({ind.spy_diff_pct:+.2f}% vs EMA 50W)\n"
+        f"• *Crédito HYG:* ${ind.hyg_price:.2f} ({ind.hyg_diff_pct:+.2f}% vs Media 20W)\n"
+        f"• *Liquidez Neta Fed:* ${getattr(ind, 'fed_net_liquidity_trillions', 5.80):.2f}T ({getattr(ind, 'fed_net_liquidity_change_pct', 0.54):+.2f}% 4W)\n"
+        f"• *VIX & Curva:* {ind.vix_value:.1f} ({getattr(ind, 'vix_term_structure', 'CONTANGO')})\n"
+        f"• *Bono 10Y:* {ind.us10y_yield:.2f}% (PIB Nominal: {ind.nominal_gdp_ref:.2f}%)"
         f"{url_footer}"
     )
     return message

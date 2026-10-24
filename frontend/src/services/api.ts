@@ -272,6 +272,26 @@ export const fallbackMockData: MacroSystemResponse = {
       recommendation: 'Entorno macro favorable para bolsa y activos de riesgo.'
     },
     {
+      id: 'fed_net_liquidity',
+      name: 'Liquidez Neta Fed (WALCL - TGA - RRP)',
+      current_value: 0.54,
+      display_value: '$5.80T (+0.54% 4W)',
+      unit: '%',
+      min_value: -5,
+      max_value: 5,
+      zones: [
+        { from_val: -5, to_val: -1, color: '#ef4444', label: 'Contracción Drenaje' },
+        { from_val: -1, to_val: 0.5, color: '#f59e0b', label: 'Neutral / Estable' },
+        { from_val: 0.5, to_val: 5, color: '#10b981', label: 'Expansión Inyección' }
+      ],
+      status_label: 'Expansión de Liquidez',
+      status_color: 'green',
+      description: 'Balance: $6.75T | TGA: $952B | RRP: $0.2B',
+      what_it_measures: 'Mide la liquidez neta que realmente circula en el sistema financiero privado (Activos Fed - TGA - RRP).',
+      meaning: 'La liquidez neta se expande a un ritmo de +0.54% mensual, respaldando los múltiplos de la bolsa.',
+      recommendation: 'Viento de cola macro: la liquidez circulante apoya al S&P 500 y al oro.'
+    },
+    {
       id: 'system_conviction',
       name: 'Convicción del Sistema',
       current_value: 85,
@@ -312,31 +332,59 @@ export const fallbackMockData: MacroSystemResponse = {
     us10y_yield: 4.24,
     nominal_gdp_ref: 6.31,
     yield_spread_safe: true,
-    fed_balance_trillions: 7.12,
-    fed_balance_change_pct: 0.15,
+    fed_balance_trillions: 6.75,
+    fed_balance_change_pct: 0.09,
+    fed_net_liquidity_trillions: 5.80,
+    fed_net_liquidity_change_pct: 0.54,
+    tga_billions: 952.0,
+    rrp_billions: 0.24,
     hy_oas_spread: 3.40,
     yield_curve_10y2y: 0.31,
+    vix_term_ratio: 0.95,
+    vix_term_structure: 'CONTANGO',
+    dxy_value: 101.8,
     is_options_window: false,
     days_to_next_options: 54,
     next_options_date: '18/12/2026'
   },
   charts: {
-    spy: Array.from({ length: 24 }, (_, i) => ({
-      date: `Sem ${i + 1}`,
-      price: Math.round(520 + i * 2.8 + (i % 3)),
-      ema: Math.round(510 + i * 2.0)
-    })),
-    gold: Array.from({ length: 24 }, (_, i) => ({
-      date: `Sem ${i + 1}`,
-      price: Math.round(210 + i * 1.8 + (i % 4)),
-      ema: Math.round(205 + i * 1.2),
-      rsi: Math.round(48 + (i % 18))
-    })),
-    hyg: Array.from({ length: 24 }, (_, i) => ({
-      date: `Sem ${i + 1}`,
-      price: Number((76.5 + i * 0.12).toFixed(2)),
-      ema: Number((76.2 + i * 0.10).toFixed(2))
-    }))
+    spy: Array.from({ length: 24 }, (_, i) => {
+      const p = Math.round(520 + i * 2.8 + (i % 3));
+      return {
+        date: `Sem ${i + 1}`,
+        price: p,
+        ema: Math.round(510 + i * 2.0),
+        open: p - 1,
+        high: p + 3,
+        low: p - 2,
+        volume: 60000000
+      };
+    }),
+    gold: Array.from({ length: 24 }, (_, i) => {
+      const p = Math.round(210 + i * 1.8 + (i % 4));
+      return {
+        date: `Sem ${i + 1}`,
+        price: p,
+        ema: Math.round(205 + i * 1.2),
+        rsi: Math.round(48 + (i % 18)),
+        open: p - 0.8,
+        high: p + 2,
+        low: p - 1.5,
+        volume: 8000000
+      };
+    }),
+    hyg: Array.from({ length: 24 }, (_, i) => {
+      const p = Number((76.5 + i * 0.12).toFixed(2));
+      return {
+        date: `Sem ${i + 1}`,
+        price: p,
+        ema: Number((76.2 + i * 0.10).toFixed(2)),
+        open: p - 0.2,
+        high: p + 0.4,
+        low: p - 0.3,
+        volume: 30000000
+      };
+    })
   }
 };
 

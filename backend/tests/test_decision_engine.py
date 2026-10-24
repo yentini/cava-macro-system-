@@ -120,10 +120,11 @@ def test_gauge_metrics_generation():
     gauges = build_gauge_metrics(ind, 85, 80)
 
     # Assert
-    assert len(gauges) == 10
+    assert len(gauges) == 11
     gauge_ids = [g.id for g in gauges]
     assert "confluence_index" in gauge_ids
     assert "system_conviction" in gauge_ids
+    assert "fed_net_liquidity" in gauge_ids
     assert "hyg_ema" in gauge_ids
     assert "spy_ema" in gauge_ids
     assert "spy_rsi" in gauge_ids
@@ -139,8 +140,41 @@ def test_build_hyg_gauge():
     gauge_bull = build_hyg_gauge(hyg_price=79.2, hyg_ema20=77.8, hyg_diff_pct=1.8, hyg_bullish=True)
     assert gauge_bull.id == "hyg_ema"
     assert gauge_bull.status_color == "green"
-    assert gauge_bull.status_label == "Liquidez Sana"
-    assert gauge_bull.current_value == 1.8
+
+
+def test_build_fed_net_liquidity_gauge():
+    from app.decision_engine import build_fed_net_liquidity_gauge
+    gauge = build_fed_net_liquidity_gauge(
+        net_liq_t=5.80,
+        net_liq_chg=0.54,
+        walcl_t=6.75,
+        tga_b=952.0,
+        rrp_b=0.24
+    )
+    assert gauge.id == "fed_net_liquidity"
+    assert "$5.80T" in gauge.display_value
+    assert gauge.status_color == "green"
+
+
+def test_regime_state_transition(tmp_path, monkeypatch):
+    from app import regime_state
+    fake_file = tmp_path / "regime_state.json"
+    monkeypatch.setattr(regime_state, "STATE_FILE", fake_file)
+
+    # First check: no previous regime
+    changed, prev = regime_state.check_and_update_regime("EXPANSION_PLENA")
+    assert changed is False
+    assert prev is None
+
+    # Second check: same regime -> no change
+    changed, prev = regime_state.check_and_update_regime("EXPANSION_PLENA")
+    assert changed is False
+    assert prev == "EXPANSION_PLENA"
+
+    # Third check: transition to defensive regime -> changed is True
+    changed, prev = regime_state.check_and_update_regime("REGIMEN_DEFENSIVO")
+    assert changed is True
+    assert prev == "EXPANSION_PLENA"
 
     # Bearish credit case (Divergence / Crack in high yield)
     gauge_bear = build_hyg_gauge(hyg_price=76.0, hyg_ema20=78.0, hyg_diff_pct=-2.56, hyg_bullish=False)

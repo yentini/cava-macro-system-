@@ -116,8 +116,15 @@ export interface TechnicalIndicators {
 
   fed_balance_trillions: number;
   fed_balance_change_pct?: number;
+  fed_net_liquidity_trillions?: number;
+  fed_net_liquidity_change_pct?: number;
+  tga_billions?: number;
+  rrp_billions?: number;
   hy_oas_spread?: number;
   yield_curve_10y2y?: number;
+  vix_term_ratio?: number;
+  vix_term_structure?: string;
+  dxy_value?: number;
   is_options_window: boolean;
   days_to_next_options?: number;
   next_options_date?: string;
@@ -128,6 +135,10 @@ export interface ChartDataPoint {
   price: number;
   ema?: number;
   rsi?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  volume?: number;
 }
 
 export interface MacroSystemResponse {
