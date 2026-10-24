@@ -441,6 +441,7 @@ def build_gauge_metrics(
 
     # Gauge 4: Rendimiento Bono USA 10Y vs PIB nominal
     yield_val = ind.us10y_yield
+    gdp_ref = ind.nominal_gdp_ref
     yield_gauge = GaugeMetric(
         id="us10y_yield",
         name="Bono USA 10Y Yield",
@@ -451,25 +452,25 @@ def build_gauge_metrics(
         max_value=8.0,
         zones=[
             GaugeZone(from_val=2.0, to_val=5.0, color="#10b981", label="Expansivo (<5%)"),
-            GaugeZone(from_val=5.0, to_val=6.0, color="#f59e0b", label="Vigilancia (5-6%)"),
-            GaugeZone(from_val=6.0, to_val=8.0, color="#ef4444", label="Restrictivo (>6%)")
+            GaugeZone(from_val=5.0, to_val=round(gdp_ref, 1), color="#f59e0b", label=f"Vigilancia (5-{gdp_ref:.1f}%)"),
+            GaugeZone(from_val=round(gdp_ref, 1), to_val=8.0, color="#ef4444", label=f"Restrictivo (>{gdp_ref:.1f}%)")
         ],
-        status_label="Expansivo (< PIB ~6.5%)" if yield_val < 6.0 else "Restrictivo (> 6%)",
-        status_color="green" if yield_val < 6.0 else "red",
-        description="Si el bono supera al crecimiento del PIB nominal, el coste de la deuda asfixia la economía.",
-        what_it_measures="Mide el coste del endeudamiento a 10 años comparado con la velocidad a la que crece la economía de EE.UU. (PIB nominal ~6.5%).",
+        status_label=f"Expansivo (< PIB {gdp_ref:.1f}%)" if yield_val < gdp_ref else f"Restrictivo (> {gdp_ref:.1f}%)",
+        status_color="green" if yield_val < gdp_ref else "red",
+        description=f"Si el bono supera al crecimiento del PIB nominal ({gdp_ref:.2f}%), el coste de la deuda asfixia la economía.",
+        what_it_measures=f"Mide el coste del endeudamiento a 10 años comparado con la velocidad a la que crece la economía de EE.UU. (PIB nominal {gdp_ref:.2f}% según FRED).",
         meaning=(
-            f"El rendimiento actual del {yield_val:.2f}% está por debajo del umbral del 6%. "
+            f"El rendimiento actual del {yield_val:.2f}% está por debajo del PIB nominal ({gdp_ref:.2f}%). "
             "El coste de la deuda no asfixia a empresas ni familias, manteniendo la expansión económica viva."
-            if yield_val < 6.0 else
-            f"El rendimiento ({yield_val:.2f}%) roza o supera el PIB nominal. Alerta de freno económico o recesión técnica."
+            if yield_val < gdp_ref else
+            f"El rendimiento ({yield_val:.2f}%) roza o supera el PIB nominal ({gdp_ref:.2f}%). Alerta de freno económico o recesión técnica."
         ),
         recommendation=(
             "Tranquilidad macroeconómica: el entorno financiero sigue siendo propicio para activos de riesgo."
-            if yield_val < 6.0 else
+            if yield_val < gdp_ref else
             "Aumentar prudencia y reducir apalancamiento ante el encarecimiento del dinero."
         ),
-        how_calculated="Cálculo: Rendimiento nominal del bono a 10 años. <5.0% = 8 pts, 5.0%-6.0% = 4 pts, ≥6.0% = 0 pts (Capa 1)."
+        how_calculated=f"Cálculo: Rendimiento nominal del bono a 10 años comparado contra el PIB Nominal dinámico de FRED ({gdp_ref:.2f}%). <5.0% = 8 pts, 5.0%-{gdp_ref:.1f}% = 4 pts, ≥{gdp_ref:.1f}% = 0 pts (Capa 1)."
     )
 
     # Gauge 5: Convicción Global del Sistema

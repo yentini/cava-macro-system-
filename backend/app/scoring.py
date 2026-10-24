@@ -93,18 +93,19 @@ def score_hyg(ind: TechnicalIndicators) -> RuleCheck:
 
 
 def score_us10y(ind: TechnicalIndicators) -> RuleCheck:
-    """Cost of money: US 10Y yield tiers (<5 % = 8, 5-6 % = 4, >=6 % = 0)."""
+    """Cost of money: US 10Y yield tiers (<5 % = 8, 5-GDP_ref % = 4, >=GDP_ref % = 0)."""
     yield_val = ind.us10y_yield
+    gdp_limit = ind.nominal_gdp_ref if ind.nominal_gdp_ref > YIELD_COMFORT else YIELD_LIMIT
     if yield_val < YIELD_COMFORT:
         points, condition = 8, "Menor del 5 % (expansivo)"
-    elif yield_val < YIELD_LIMIT:
-        points, condition = 4, "Entre 5 % y 6 % (vigilancia)"
+    elif yield_val < gdp_limit:
+        points, condition = 4, f"Entre 5 % y {gdp_limit:.1f} % (vigilancia)"
     else:
-        points, condition = 0, "6 % o más (restrictivo)"
+        points, condition = 0, f"{gdp_limit:.1f} % o más (restrictivo)"
     return build_rule(
         "us10y", "Bono USA 10Y", f"{yield_val:.2f}%", condition, points, 8,
-        "Si el bono se acerca al crecimiento del PIB nominal (~6,5 %), la deuda asfixia a "
-        "empresas y familias. Por debajo del 5 % el dinero sigue siendo barato.",
+        f"Si el bono se acerca al crecimiento del PIB nominal ({ind.nominal_gdp_ref:.2f} % según FRED), "
+        "la deuda asfixia a empresas y familias. Por debajo del 5 % el dinero sigue siendo barato.",
     )
 
 

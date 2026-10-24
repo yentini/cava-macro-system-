@@ -122,12 +122,17 @@ def fetch_yfinance_daily(ticker: str, period: str = "1y") -> pd.DataFrame:
     df = df.dropna()
     return df
 
-def fetch_fred_indicators(api_key: str) -> Tuple[float, float]:
-    """Fetch Fed balance (WALCL) in Trillions and High Yield Spread."""
+def fetch_fred_indicators(api_key: str) -> Tuple[float, float, float]:
+    """Fetch Fed balance (WALCL) in Trillions, High Yield Spread, and Nominal GDP YoY %."""
     default_balance_t = 7.15  # Default ~7.15 Trillion
     default_hy_spread = 3.20  # Default ~3.2%
+    default_nominal_gdp = 6.50  # Default ~6.5%
     if not api_key or Fred is None:
-        return default_balance_t, default_hy_spread
+        return default_balance_t, default_hy_spread, default_nominal_gdp
+
+    balance_trillions = default_balance_t
+    latest_spread = default_hy_spread
+    nominal_gdp = default_nominal_gdp
 
     try:
         fred = Fred(api_key=api_key)
@@ -137,7 +142,6 @@ def fetch_fred_indicators(api_key: str) -> Tuple[float, float]:
         balance_trillions = round(latest_walcl_m / 1_000_000, 2)
     except Exception as exc:
         logger.warning("Could not fetch WALCL from FRED: %s", exc)
-        balance_trillions = default_balance_t
 
     try:
         fred = Fred(api_key=api_key)
@@ -145,9 +149,19 @@ def fetch_fred_indicators(api_key: str) -> Tuple[float, float]:
         latest_spread = float(spread_series.dropna().iloc[-1])
     except Exception as exc:
         logger.warning("Could not fetch HY Spread from FRED: %s", exc)
-        latest_spread = default_hy_spread
 
-    return balance_trillions, latest_spread
+    try:
+        fred = Fred(api_key=api_key)
+        # Fetch US Nominal GDP (Gross Domestic Product in Billions, quarterly series)
+        gdp_series = fred.get_series("GDP").dropna()
+        if len(gdp_series) >= 5:
+            latest_gdp = float(gdp_series.iloc[-1])
+            prev_year_gdp = float(gdp_series.iloc[-5])
+            nominal_gdp = round(((latest_gdp - prev_year_gdp) / prev_year_gdp) * 100, 2)
+    except Exception as exc:
+        logger.warning("Could not fetch GDP from FRED: %s", exc)
+
+    return balance_trillions, latest_spread, nominal_gdp
 
 def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDataPoint]]]:
     """Generate realistic fallback indicators and charts if network is offline."""
@@ -276,7 +290,7 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
         hyg_ema20 = float(last_hyg["EMA20"])
         hyg_diff = round(((hyg_price - hyg_ema20) / hyg_ema20) * 100, 2)
 
-        fed_bal, _ = fetch_fred_indicators(settings.fred_api_key)
+        fed_bal, _, gdp_growth = fetch_fred_indicators(settings.fred_api_key)
 
         indicators = TechnicalIndicators(
             spy_price=round(spy_price, 2),
@@ -296,8 +310,8 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
             hyg_diff_pct=hyg_diff,
             hyg_bullish=(hyg_price > hyg_ema20),
             us10y_yield=round(last_10y, 2),
-            nominal_gdp_ref=6.5,
-            yield_spread_safe=(last_10y < 6.0),
+            nominal_gdp_ref=round(gdp_growth, 2),
+            yield_spread_safe=(last_10y < gdp_growth),
             vix_value=round(vix_val, 1),
             vix_low=(vix_val < 16.0),
             breadth_ratio=round(breadth_ratio, 4),
