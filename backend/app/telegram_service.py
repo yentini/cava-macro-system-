@@ -49,9 +49,10 @@ def format_telegram_alert(
         f"📈 *RSI 1W S&P 500:* {ind.spy_rsi14:.1f} (Gatillo ≤40 | Euforia ≥70)\n"
         f"📈 *RSI 1W Oro:* {ind.gold_rsi14:.1f} (Gatillo ≤42)\n"
         f"{hyg_icon} *Bonos Basura (HYG):* ${ind.hyg_price:.2f} (Media 20W: ${ind.hyg_ema20:.2f})\n"
-        f"{yield_icon} *Bono USA 10Y:* {ind.us10y_yield:.2f}% (Umbral PIB ~6.5%)\n"
-        f"⚡ *Gatillo Opciones / Pánico:* {trigger_icon}\n"
-        f"🏛️ *Balance Fed:* ~${ind.fed_balance_trillions:.2f}T"
+        f"{yield_icon} *Bono USA 10Y:* {ind.us10y_yield:.2f}% (PIB Nominal: {ind.nominal_gdp_ref:.2f}%)\n"
+        f"💳 *Spread Crédito OAS:* {ind.hy_oas_spread:.2f}% | *Curva 10Y-2Y:* {ind.yield_curve_10y2y:+.2f}%\n"
+        f"⚡ *Gatillo Opciones / Pánico:* {trigger_icon} ({'Activo ahora' if ind.is_options_window else f'Próximo {ind.next_options_date} ({ind.days_to_next_options}d)'})\n"
+        f"🏛️ *Balance Fed:* ~${ind.fed_balance_trillions:.2f}T ({ind.fed_balance_change_pct:+.2f}% 4W)"
         f"{url_footer}"
     )
     return message

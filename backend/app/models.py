@@ -103,8 +103,16 @@ class TechnicalIndicators(BaseModel):
     breadth_diff_pct: float = 1.2  # vs 20W EMA
     breadth_healthy: bool = True  # True if broad market participates
 
+    # Liquidity & Macro dynamic indicators (FRED)
     fed_balance_trillions: float
+    fed_balance_change_pct: float = 0.0
+    hy_oas_spread: float = 3.40
+    yield_curve_10y2y: float = 0.31
+
+    # Options Quadruple Witching dynamics
     is_options_window: bool
+    days_to_next_options: int = 0
+    next_options_date: str = ""
 
 class DecisionResult(BaseModel):
     """Composite Decision Output following Cava's methodology."""

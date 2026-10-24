@@ -115,7 +115,12 @@ export interface TechnicalIndicators {
   breadth_healthy?: boolean;
 
   fed_balance_trillions: number;
+  fed_balance_change_pct?: number;
+  hy_oas_spread?: number;
+  yield_curve_10y2y?: number;
   is_options_window: boolean;
+  days_to_next_options?: number;
+  next_options_date?: string;
 }
 
 export interface ChartDataPoint {

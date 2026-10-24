@@ -81,31 +81,33 @@ def build_rule(
 
 
 def score_hyg(ind: TechnicalIndicators) -> RuleCheck:
-    """Credit appetite: HYG above its 20-week EMA (20 pts, highest weight)."""
+    """Credit appetite: HYG above its 20-week EMA (20 pts) enriched with OAS Spread."""
     is_above = ind.hyg_bullish
+    spread_info = f" (OAS: {ind.hy_oas_spread:.2f}%)" if ind.hy_oas_spread else ""
     return build_rule(
-        "hyg", "Bonos basura (HYG) vs media 20W", f"{ind.hyg_diff_pct:+.2f}% vs media",
+        "hyg", "Bonos basura (HYG) vs media 20W", f"{ind.hyg_diff_pct:+.2f}% vs media{spread_info}",
         "Sobre la media 20W" if is_above else "Bajo la media 20W",
         20 if is_above else 0, 20,
-        "El crédito de alto riesgo es el termómetro de la liquidez. Tiene el mayor peso "
-        "porque el crédito suele adelantarse a la bolsa: si se seca, las subidas no se sostienen.",
+        f"El crédito de alto riesgo cotiza con un diferencial OAS de {ind.hy_oas_spread:.2f}% sobre el Tesoro. "
+        "Tiene el mayor peso porque el dinero inteligente opera en crédito: si se seca, la bolsa no se sostiene.",
     )
 
 
 def score_us10y(ind: TechnicalIndicators) -> RuleCheck:
-    """Cost of money: US 10Y yield tiers (<5 % = 8, 5-GDP_ref % = 4, >=GDP_ref % = 0)."""
+    """Cost of money: US 10Y yield tiers (<5 % = 8, 5-GDP_ref % = 4, >=GDP_ref % = 0) with 10Y-2Y curve."""
     yield_val = ind.us10y_yield
     gdp_limit = ind.nominal_gdp_ref if ind.nominal_gdp_ref > YIELD_COMFORT else YIELD_LIMIT
+    curve_info = f" | Curva 10Y-2Y: {ind.yield_curve_10y2y:+.2f}%"
     if yield_val < YIELD_COMFORT:
-        points, condition = 8, "Menor del 5 % (expansivo)"
+        points, condition = 8, f"Menor del 5 % (expansivo){curve_info}"
     elif yield_val < gdp_limit:
-        points, condition = 4, f"Entre 5 % y {gdp_limit:.1f} % (vigilancia)"
+        points, condition = 4, f"Entre 5 % y {gdp_limit:.1f} % (vigilancia){curve_info}"
     else:
-        points, condition = 0, f"{gdp_limit:.1f} % o más (restrictivo)"
+        points, condition = 0, f"{gdp_limit:.1f} % o más (restrictivo){curve_info}"
     return build_rule(
-        "us10y", "Bono USA 10Y", f"{yield_val:.2f}%", condition, points, 8,
-        f"Si el bono se acerca al crecimiento del PIB nominal ({ind.nominal_gdp_ref:.2f} % según FRED), "
-        "la deuda asfixia a empresas y familias. Por debajo del 5 % el dinero sigue siendo barato.",
+        "us10y", "Bono USA 10Y & Curva", f"{yield_val:.2f}% (Curva: {ind.yield_curve_10y2y:+.2f}%)", condition, points, 8,
+        f"Bono 10Y en {yield_val:.2f}% frente al crecimiento del PIB nominal ({ind.nominal_gdp_ref:.2f}% según FRED). "
+        f"La curva 10Y-2Y cotiza en {ind.yield_curve_10y2y:+.2f}% de pendiente.",
     )
 
 
@@ -198,14 +200,19 @@ def score_gold_rsi(ind: TechnicalIndicators) -> RuleCheck:
 
 
 def score_options_window(ind: TechnicalIndicators) -> RuleCheck:
-    """Options expiration window (active = 5, inactive = 2)."""
+    """Options expiration window (active = 5, inactive = 2) with dynamic 3rd Friday OPEX."""
     is_active = ind.is_options_window
+    detail_str = (
+        "Ventana Activa (±7 días del 3.er viernes)"
+        if is_active
+        else (f"Próximo: {ind.next_options_date} ({ind.days_to_next_options}d)" if ind.next_options_date else "Fuera de ventana")
+    )
     return build_rule(
-        "options", "Ventana de vencimientos de opciones", "Activa" if is_active else "Inactiva",
-        "Ventana activa (marzo / septiembre)" if is_active else "Fuera de ventana",
+        "options", "Ventana de vencimientos de opciones (OPEX)", detail_str,
+        "Ventana activa (semana OPEX trimestral)" if is_active else "Fuera de ventana",
         5 if is_active else 2, 5,
-        "Cava vigila los grandes vencimientos trimestrales: suelen provocar sacudidas que "
-        "ofrecen mejores precios de entrada. Fuera de ventana es un factor neutro.",
+        "Cava vigila los vencimientos trimestrales (3.er viernes de marzo, junio, septiembre y diciembre): "
+        "las liquidaciones masivas de opciones gamma suelen provocar techos o suelos tácticos.",
     )
 
 

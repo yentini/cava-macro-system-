@@ -310,10 +310,15 @@ export const fallbackMockData: MacroSystemResponse = {
     hyg_diff_pct: 1.80,
     hyg_bullish: true,
     us10y_yield: 4.24,
-    nominal_gdp_ref: 6.5,
+    nominal_gdp_ref: 6.31,
     yield_spread_safe: true,
     fed_balance_trillions: 7.12,
-    is_options_window: false
+    fed_balance_change_pct: 0.15,
+    hy_oas_spread: 3.40,
+    yield_curve_10y2y: 0.31,
+    is_options_window: false,
+    days_to_next_options: 54,
+    next_options_date: '18/12/2026'
   },
   charts: {
     spy: Array.from({ length: 24 }, (_, i) => ({

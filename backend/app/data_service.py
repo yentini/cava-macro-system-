@@ -48,12 +48,38 @@ def calculate_rsi(series: pd.Series, period: int = 14) -> pd.Series:
     rsi = 100 - (100 / (1 + rs))
     return rsi.fillna(50.0)
 
+def get_third_friday(year: int, month: int) -> datetime:
+    """Return the third Friday of a given year and month."""
+    first_day = datetime(year, month, 1)
+    days_to_first_friday = (4 - first_day.weekday()) % 7
+    first_friday = first_day + timedelta(days=days_to_first_friday)
+    return first_friday + timedelta(weeks=2)
+
+def calculate_options_expiration_metrics(reference_date: datetime | None = None) -> Tuple[bool, int, str]:
+    """Calculate whether today is within the quarterly OPEX window (+-7 days of 3rd Friday in Mar/Jun/Sep/Dec),
+    the days remaining to the next expiration, and its formatted date string.
+    """
+    today = reference_date or datetime.now()
+    year = today.year
+    quarter_months = [3, 6, 9, 12]
+
+    expirations: List[datetime] = []
+    for y in (year - 1, year, year + 1):
+        for m in quarter_months:
+            expirations.append(get_third_friday(y, m))
+
+    is_window = any(abs((today.date() - exp.date()).days) <= 7 for exp in expirations)
+    future_expirations = [exp for exp in expirations if exp.date() >= today.date()]
+    next_exp = min(future_expirations, key=lambda exp: (exp.date() - today.date()).days)
+    days_to_next = (next_exp.date() - today.date()).days
+    next_exp_str = next_exp.strftime("%d/%m/%Y")
+
+    return is_window, days_to_next, next_exp_str
+
 def is_options_expiration_window() -> bool:
-    """Check if today is within major quarterly options expiration window (March/Sept)."""
-    today = datetime.now()
-    is_march = (today.month == 3 and today.day >= 15)
-    is_sept = (today.month == 9 and today.day >= 15)
-    return is_march or is_sept
+    """Check if today is within major quarterly options expiration window (March/June/Sept/Dec)."""
+    is_window, _, _ = calculate_options_expiration_metrics()
+    return is_window
 
 def fetch_yahoo_direct_candles(ticker: str, range_str: str = "1y", interval_str: str = "1wk") -> pd.DataFrame:
     """Fetch candles directly from Yahoo Finance Chart API with standard browser headers."""
@@ -122,31 +148,40 @@ def fetch_yfinance_daily(ticker: str, period: str = "1y") -> pd.DataFrame:
     df = df.dropna()
     return df
 
-def fetch_fred_indicators(api_key: str) -> Tuple[float, float, float]:
-    """Fetch Fed balance (WALCL) in Trillions, High Yield Spread, and Nominal GDP YoY %."""
+def fetch_fred_indicators(api_key: str) -> Tuple[float, float, float, float, float]:
+    """Fetch Fed balance (WALCL) in Trillions, Fed 4W % change, HY OAS Spread, Nominal GDP YoY %, and 10Y-2Y Yield Curve."""
     default_balance_t = 7.15  # Default ~7.15 Trillion
+    default_fed_change_pct = 0.0  # Default 0.0%
     default_hy_spread = 3.20  # Default ~3.2%
     default_nominal_gdp = 6.50  # Default ~6.5%
+    default_10y2y_curve = 0.30  # Default +0.30%
     if not api_key or Fred is None:
-        return default_balance_t, default_hy_spread, default_nominal_gdp
+        return default_balance_t, default_fed_change_pct, default_hy_spread, default_nominal_gdp, default_10y2y_curve
 
     balance_trillions = default_balance_t
+    fed_change_pct = default_fed_change_pct
     latest_spread = default_hy_spread
     nominal_gdp = default_nominal_gdp
+    yield_curve_10y2y = default_10y2y_curve
 
     try:
         fred = Fred(api_key=api_key)
         # WALCL is reported weekly in Millions
-        walcl_series = fred.get_series("WALCL")
-        latest_walcl_m = float(walcl_series.dropna().iloc[-1])
-        balance_trillions = round(latest_walcl_m / 1_000_000, 2)
+        walcl_series = fred.get_series("WALCL").dropna()
+        if not walcl_series.empty:
+            latest_walcl_m = float(walcl_series.iloc[-1])
+            balance_trillions = round(latest_walcl_m / 1_000_000, 2)
+            if len(walcl_series) >= 5:
+                prev_4w_walcl_m = float(walcl_series.iloc[-5])
+                fed_change_pct = round(((latest_walcl_m - prev_4w_walcl_m) / prev_4w_walcl_m) * 100, 2)
     except Exception as exc:
         logger.warning("Could not fetch WALCL from FRED: %s", exc)
 
     try:
         fred = Fred(api_key=api_key)
-        spread_series = fred.get_series("BAMLH0A0HYM2")
-        latest_spread = float(spread_series.dropna().iloc[-1])
+        spread_series = fred.get_series("BAMLH0A0HYM2").dropna()
+        if not spread_series.empty:
+            latest_spread = round(float(spread_series.iloc[-1]), 2)
     except Exception as exc:
         logger.warning("Could not fetch HY Spread from FRED: %s", exc)
 
@@ -161,7 +196,15 @@ def fetch_fred_indicators(api_key: str) -> Tuple[float, float, float]:
     except Exception as exc:
         logger.warning("Could not fetch GDP from FRED: %s", exc)
 
-    return balance_trillions, latest_spread, nominal_gdp
+    try:
+        fred = Fred(api_key=api_key)
+        curve_series = fred.get_series("T10Y2Y").dropna()
+        if not curve_series.empty:
+            yield_curve_10y2y = round(float(curve_series.iloc[-1]), 2)
+    except Exception as exc:
+        logger.warning("Could not fetch T10Y2Y from FRED: %s", exc)
+
+    return balance_trillions, fed_change_pct, latest_spread, nominal_gdp, yield_curve_10y2y
 
 def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDataPoint]]]:
     """Generate realistic fallback indicators and charts if network is offline."""
@@ -192,7 +235,12 @@ def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[Char
         breadth_diff_pct=1.45,
         breadth_healthy=True,
         fed_balance_trillions=7.12,
-        is_options_window=is_options_expiration_window()
+        fed_balance_change_pct=0.15,
+        hy_oas_spread=3.40,
+        yield_curve_10y2y=0.31,
+        is_options_window=is_options_expiration_window(),
+        days_to_next_options=54,
+        next_options_date="18/12/2026"
     )
 
     dates = [(now - timedelta(weeks=i)).strftime("%Y-%m-%d") for i in range(52, -1, -1)]
@@ -290,7 +338,8 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
         hyg_ema20 = float(last_hyg["EMA20"])
         hyg_diff = round(((hyg_price - hyg_ema20) / hyg_ema20) * 100, 2)
 
-        fed_bal, _, gdp_growth = fetch_fred_indicators(settings.fred_api_key)
+        fed_bal, fed_chg, oas_spread, gdp_growth, curve_10y2y = fetch_fred_indicators(settings.fred_api_key)
+        is_opt_win, opt_days, opt_date = calculate_options_expiration_metrics()
 
         indicators = TechnicalIndicators(
             spy_price=round(spy_price, 2),
@@ -318,7 +367,12 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
             breadth_diff_pct=breadth_diff,
             breadth_healthy=breadth_ok,
             fed_balance_trillions=fed_bal,
-            is_options_window=is_options_expiration_window()
+            fed_balance_change_pct=fed_chg,
+            hy_oas_spread=oas_spread,
+            yield_curve_10y2y=curve_10y2y,
+            is_options_window=is_opt_win,
+            days_to_next_options=opt_days,
+            next_options_date=opt_date
         )
 
         # Build chart series (last 52 weeks)
