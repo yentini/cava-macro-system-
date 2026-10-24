@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+*.cache
+*.db
+backend/cache/
+cache/
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+*.env.local
+!.env.example
+!*.env.example
+
+# Node
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
