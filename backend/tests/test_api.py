@@ -22,7 +22,7 @@ def test_api_status():
     assert "decision" in data
     assert "gauges" in data
     assert "indicators" in data
-    assert len(data["gauges"]) == 9
+    assert len(data["gauges"]) == 10
     assert data["decision"]["score_conviction"] > 0
     assert "confluence_index" in data["decision"]
     assert "cross_rules" in data["decision"]

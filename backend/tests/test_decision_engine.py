@@ -6,7 +6,8 @@ from app.decision_engine import (
     evaluate_trigger_layer,
     evaluate_combined_system,
     build_gauge_metrics,
-    build_spy_rsi_gauge
+    build_spy_rsi_gauge,
+    build_hyg_gauge,
 )
 from app.models import MarketRegime, TechnicalIndicators
 
@@ -119,10 +120,11 @@ def test_gauge_metrics_generation():
     gauges = build_gauge_metrics(ind, 85, 80)
 
     # Assert
-    assert len(gauges) == 9
+    assert len(gauges) == 10
     gauge_ids = [g.id for g in gauges]
     assert "confluence_index" in gauge_ids
     assert "system_conviction" in gauge_ids
+    assert "hyg_ema" in gauge_ids
     assert "spy_ema" in gauge_ids
     assert "spy_rsi" in gauge_ids
     assert "gold_ema" in gauge_ids
@@ -130,6 +132,22 @@ def test_gauge_metrics_generation():
     assert "us10y_yield" in gauge_ids
     assert "vix_volatility" in gauge_ids
     assert "market_breadth" in gauge_ids
+
+
+def test_build_hyg_gauge():
+    # Bullish credit case
+    gauge_bull = build_hyg_gauge(hyg_price=79.2, hyg_ema20=77.8, hyg_diff_pct=1.8, hyg_bullish=True)
+    assert gauge_bull.id == "hyg_ema"
+    assert gauge_bull.status_color == "green"
+    assert gauge_bull.status_label == "Liquidez Sana"
+    assert gauge_bull.current_value == 1.8
+
+    # Bearish credit case (Divergence / Crack in high yield)
+    gauge_bear = build_hyg_gauge(hyg_price=76.0, hyg_ema20=78.0, hyg_diff_pct=-2.56, hyg_bullish=False)
+    assert gauge_bear.id == "hyg_ema"
+    assert gauge_bear.status_color == "red"
+    assert gauge_bear.status_label == "Deterioro Crediticio"
+    assert gauge_bear.current_value == -2.56
 
 
 @pytest.mark.parametrize(

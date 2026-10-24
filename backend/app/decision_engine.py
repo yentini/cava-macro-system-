@@ -251,6 +251,50 @@ def build_spy_rsi_gauge(spy_rsi: float) -> GaugeMetric:
     )
 
 
+def build_hyg_gauge(
+    hyg_price: float,
+    hyg_ema20: float,
+    hyg_diff_pct: float,
+    hyg_bullish: bool
+) -> GaugeMetric:
+    """Build the speedometer gauge for High Yield Bonds (HYG vs 20W EMA) - Cava's canary in the coal mine."""
+    return GaugeMetric(
+        id="hyg_ema",
+        name="Bonos Basura (HYG) vs 20W",
+        current_value=round(hyg_diff_pct, 2),
+        display_value=f"{hyg_diff_pct:+.2f}%",
+        unit="%",
+        min_value=-10.0,
+        max_value=10.0,
+        zones=[
+            GaugeZone(from_val=-10.0, to_val=-1.0, color="#ef4444", label="Crédito Roto (Alerta)"),
+            GaugeZone(from_val=-1.0, to_val=1.0, color="#f59e0b", label="Testeo Soporte"),
+            GaugeZone(from_val=1.0, to_val=10.0, color="#10b981", label="Liquidez Sana")
+        ],
+        status_label="Liquidez Sana" if hyg_bullish else "Deterioro Crediticio",
+        status_color="green" if hyg_bullish else "red",
+        description=f"Precio ${hyg_price:.2f} vs Media 20W ${hyg_ema20:.2f}.",
+        what_it_measures=(
+            "Mide la salud del crédito corporativo de alto rendimiento frente a su media móvil de 20 semanas. "
+            "Para José Luis Cava es el 'canario en la mina de carbón' del sistema financiero."
+        ),
+        meaning=(
+            f"HYG cotiza un {hyg_diff_pct:+.2f}% respecto a su media de 20 semanas. "
+            + ("El mercado de crédito valida el apetito por riesgo: las empresas se financian con fluidez y la liquidez institucional empuja las bolsas al alza." if hyg_bullish else
+               "HYG ha perforado su media de 20 semanas. El dinero inteligente se está retirando del riesgo. Si la bolsa sigue subiendo mientras HYG cae, se activa la Divergencia Bajista (Trampa de Mercado).")
+        ),
+        recommendation=(
+            "Vía libre para renta variable: el crédito corporativo acompaña las subidas de la bolsa."
+            if hyg_bullish else
+            "Prudencia máxima: no perseguir compras en bolsa y ceñir stops de protección. El crédito suele caer antes que las acciones."
+        ),
+        how_calculated=(
+            "Cálculo: ((Precio HYG - Media 20W) / Media 20W) * 100. Pondera 16 puntos en la Capa 1 si es alcista. "
+            "Si cae bajo la media mientras SPY está alcista, activa la Regla Cruzada R2 (Divergencia Bajista / Trampa)."
+        )
+    )
+
+
 def build_gauge_metrics(
     ind: TechnicalIndicators,
     score_conviction: int = 85,
@@ -526,9 +570,16 @@ def build_gauge_metrics(
     )
 
     spy_rsi_gauge = build_spy_rsi_gauge(ind.spy_rsi14)
+    hyg_gauge = build_hyg_gauge(
+        hyg_price=ind.hyg_price,
+        hyg_ema20=ind.hyg_ema20,
+        hyg_diff_pct=ind.hyg_diff_pct,
+        hyg_bullish=ind.hyg_bullish
+    )
 
     return [
         confluence_gauge, conviction_gauge,
+        hyg_gauge,
         spy_gauge, spy_rsi_gauge, gold_gauge, rsi_gauge,
         yield_gauge, vix_gauge, breadth_gauge
     ]

@@ -151,6 +151,27 @@ export const fallbackMockData: MacroSystemResponse = {
       how_calculated: 'Capa 1 Macro (36/40) + Capa 2 Tendencia (36/40) + Capa 3 Momento (12/20) = 84 pts.'
     },
     {
+      id: 'hyg_ema',
+      name: 'Bonos Basura (HYG) vs 20W',
+      current_value: 2.1,
+      display_value: '+2.10%',
+      unit: '%',
+      min_value: -10,
+      max_value: 10,
+      zones: [
+        { from_val: -10, to_val: -1, color: '#ef4444', label: 'Crédito Roto (Alerta)' },
+        { from_val: -1, to_val: 1, color: '#f59e0b', label: 'Testeo Soporte' },
+        { from_val: 1, to_val: 10, color: '#10b981', label: 'Liquidez Sana' }
+      ],
+      status_label: 'Liquidez Sana',
+      status_color: 'green',
+      description: 'Precio $79.20 vs Media 20W $77.80.',
+      what_it_measures: 'Mide la salud del crédito corporativo de alto rendimiento frente a su media de 20 semanas (el canario en la mina de Cava).',
+      meaning: 'HYG cotiza un +2.10% sobre la media de 20 semanas. El crédito privado valida el apetito por riesgo y aporta liquidez.',
+      recommendation: 'Tranquilidad en renta variable: las empresas se financian sin fricciones.',
+      how_calculated: 'Cálculo: ((Precio HYG - Media 20W) / Media 20W) * 100. Pondera 16 puntos en la Capa 1 si es alcista.'
+    },
+    {
       id: 'spy_ema',
       name: 'S&P 500 vs EMA 50W',
       current_value: 9.57,
