@@ -211,18 +211,41 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
     return dateStr;
   };
 
-  // Handle Mouse / Touch Move over SVG
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  // Exact coordinate transformation from Screen Pixels to SVG ViewBox using native CTM matrix
+  const updateHoverCoordinates = (svg: SVGSVGElement, clientX: number, clientY: number) => {
     if (chartData.length === 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clientX = e.clientX - rect.left;
-    const svgX = (clientX / rect.width) * width;
+    let svgX: number;
+    try {
+      const ctm = svg.getScreenCTM();
+      if (ctm) {
+        const pt = svg.createSVGPoint();
+        pt.x = clientX;
+        pt.y = clientY;
+        svgX = pt.matrixTransform(ctm.inverse()).x;
+      } else {
+        const rect = svg.getBoundingClientRect();
+        svgX = ((clientX - rect.left) / rect.width) * width;
+      }
+    } catch {
+      const rect = svg.getBoundingClientRect();
+      svgX = ((clientX - rect.left) / rect.width) * width;
+    }
 
-    // Find closest index
+    // Clamp within active inner chart area
     const clampedSvgX = Math.max(padLeft, Math.min(width - padRight, svgX));
     const ratioX = (clampedSvgX - padLeft) / innerWidth;
     const closestIdx = Math.round(ratioX * (chartData.length - 1));
     setHoverIndex(Math.max(0, Math.min(chartData.length - 1, closestIdx)));
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    updateHoverCoordinates(e.currentTarget, e.clientX, e.clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length > 0) {
+      updateHoverCoordinates(e.currentTarget, e.touches[0].clientX, e.touches[0].clientY);
+    }
   };
 
   // RSI Subchart Geometry
@@ -429,9 +452,11 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
       <div className="relative">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-64 md:h-72 overflow-visible select-none cursor-crosshair"
+          className="w-full h-auto max-h-[360px] overflow-visible select-none cursor-crosshair block"
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setHoverIndex(null)}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={() => setHoverIndex(null)}
         >
           {/* Defs for gradients and shadow */}
           <defs>
@@ -679,6 +704,16 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
               </text>
             </g>
           )}
+
+          {/* Transparent interaction capture overlay covering the full inner area */}
+          <rect
+            x={padLeft}
+            y={padTop}
+            width={innerWidth}
+            height={innerHeight}
+            fill="transparent"
+            className="cursor-crosshair pointer-events-auto"
+          />
         </svg>
       </div>
 
@@ -698,7 +733,14 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
             </div>
           </div>
 
-          <svg viewBox={`0 0 ${width} ${rsiHeight}`} className="w-full h-20 overflow-visible select-none">
+          <svg
+            viewBox={`0 0 ${width} ${rsiHeight}`}
+            className="w-full h-auto max-h-[110px] overflow-visible select-none cursor-crosshair block"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => setHoverIndex(null)}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={() => setHoverIndex(null)}
+          >
             {/* Background area fill */}
             <rect
               x={padLeft}
@@ -776,6 +818,16 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
                 strokeWidth="1.5"
               />
             )}
+
+            {/* Transparent RSI interaction overlay */}
+            <rect
+              x={padLeft}
+              y={rsiPadTop}
+              width={innerWidth}
+              height={rsiInnerHeight}
+              fill="transparent"
+              className="cursor-crosshair pointer-events-auto"
+            />
           </svg>
         </div>
       )}
