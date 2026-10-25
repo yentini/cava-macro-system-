@@ -121,7 +121,14 @@ def send_telegram_message(text: str) -> Dict[str, Any]:
     }
 
     try:
-        response = requests.post(api_url, json=payload, timeout=10)
+        try:
+            response = requests.post(api_url, json=payload, timeout=10)
+        except requests.exceptions.SSLError:
+            # Fallback for corporate environments / Windows self-signed cert chains
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            response = requests.post(api_url, json=payload, timeout=10, verify=False)
+
         data = response.json()
         if response.status_code == 200 and data.get("ok"):
             logger.info("Telegram notification sent successfully to chat %s", chat_id)
