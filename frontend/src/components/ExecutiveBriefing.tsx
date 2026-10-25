@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { DecisionResult, TechnicalIndicators } from '../types';
 import {
   ShieldAlert,
   ShieldCheck,
   AlertTriangle,
   Wallet,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Brain,
+  TrendingUp,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 interface ExecutiveBriefingProps {
@@ -14,6 +20,8 @@ interface ExecutiveBriefingProps {
 }
 
 export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, indicators }) => {
+  const [showDeepDive, setShowDeepDive] = useState(false);
+
   const isDivergence = decision.regime === 'DIVERGENCIA_BAJISTA';
   const isDefensive = decision.regime === 'REGIMEN_DEFENSIVO';
   const isExpansion = decision.regime === 'EXPANSION_PLENA';
@@ -31,13 +39,13 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
     : 'Mercado en Transición: Esperar Confirmación sin Anticipar Movimientos';
 
   const summaryExplanation = isDivergence
-    ? 'El índice S&P 500 sigue alto, pero los bonos de alto rendimiento (HYG) han perforado su media. Para José Luis Cava, cuando la bolsa sube sin el respaldo del crédito corporativo, el riesgo de corrección súbita es muy elevado.'
+    ? 'El índice S&P 500 sigue alto, pero los bonos de alto rendimiento (HYG) han perforado su media móvil. Para José Luis Cava, cuando la bolsa sube sin el respaldo del crédito corporativo, el riesgo de corrección súbita es muy elevado.'
     : isDefensive
     ? 'La liquidez se ha secado o la tendencia estructural de la bolsa se ha roto. El objetivo principal es no perder dinero: refugiarse en fondos monetarios y oro.'
     : isOpportunity
     ? 'Ha habido una caída por miedo puntual en un activo con tendencia estructural alcista sana. Es el momento de disparar compras con stop ceñido bajo el mínimo semanal.'
     : isExpansion
-    ? 'Tanto el crédito, como los tipos de interés, la liquidez y la amplitud acompañan la subida. Vía libre para compras periódicas y aportaciones indexadas.'
+    ? 'Tanto el crédito corporativo, como los tipos de interés, la liquidez y la amplitud acompañan la subida. Vía libre para compras periódicas y aportaciones indexadas.'
     : 'Existen señales mixtas entre los distintos indicadores. Mantener la calma, no aumentar el riesgo y cobrar rendimientos en fondos monetarios.';
 
   return (
@@ -179,17 +187,87 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
       </div>
 
       {/* Action Guidance Footnote */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-xs gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-xs gap-3 mb-4">
         <div className="flex items-center gap-2">
           <Wallet className="w-4 h-4 text-amber-400 shrink-0" />
           <span className="text-amber-200 font-medium">
             <strong>Plan Operativo Inmediato:</strong> {decision.action_sp500} · {decision.action_gold}
           </span>
         </div>
-        <span className="text-amber-400 font-bold shrink-0 text-[11px]">
-          Despliega los apartados inferiores para ver el desglose técnico detallado ↓
-        </span>
+        <button
+          type="button"
+          onClick={() => setShowDeepDive(!showDeepDive)}
+          className="inline-flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-bold shrink-0 text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 transition cursor-pointer"
+        >
+          <Brain className="w-3.5 h-3.5" />
+          <span>{showDeepDive ? 'Ocultar explicación profunda' : '¿Por qué ocurre esto? Ver explicación a fondo'}</span>
+          {showDeepDive ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
       </div>
+
+      {/* DEEP DIVE EXPANDABLE EXPLANATION (Detailed logic behind the signal) */}
+      {showDeepDive && (
+        <div className="mt-4 pt-4 border-t border-slate-800/90 animate-fade-in space-y-4">
+          <div className="p-4 rounded-xl bg-slate-950/80 border border-amber-500/20">
+            <h4 className="text-xs md:text-sm font-extrabold text-amber-300 flex items-center gap-2 mb-2">
+              <Brain className="w-4 h-4 text-amber-400" />
+              La Lógica de José Luis Cava: ¿Qué está detectando el algoritmo en este momento?
+            </h4>
+            <div className="space-y-3 text-xs text-slate-300 leading-relaxed font-normal">
+              <p>
+                En el análisis macro de José Luis Cava, <strong>el mercado de acciones (S&P 500) es siempre el último en enterarse de los problemas</strong>. Los inversores minoristas suelen fijarse únicamente en si el gráfico del S&P 500 sigue subiendo, pero el <em>«dinero inteligente»</em> (grandes fondos de inversión institucional y mesas de tesorería) opera primero en los mercados de crédito y liquidez.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-lg">
+                  <span className="font-bold text-amber-300 block mb-1">
+                    1. El bono de alto rendimiento (HYG) como canario en la mina:
+                  </span>
+                  Las empresas con más deuda son las primeras en sufrir cuando el dinero se encarece. Cuando el ETF <strong>HYG</strong> perfora su media móvil pero el <strong>S&P 500</strong> sigue en máximos, se produce una <em>divergencia bajista</em>: el crédito se seca y los grandes capitales están vendiendo silenciosamente mientras los minoristas siguen comprando en euforia.
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-lg">
+                  <span className="font-bold text-amber-300 block mb-1">
+                    2. La Gasolina del Sistema (Liquidez Neta de la Fed):
+                  </span>
+                  La liquidez real disponible se calcula como: <code>Balance Fed − Cuenta del Tesoro (TGA) − Repo Inverso (RRP)</code>. Cuando el Tesoro estadounidense drena liquidez emitiendo deuda masiva o el balance se reduce, la bolsa pierde soporte fundamental y cualquier choque genera caídas pronunciadas.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Roadmap: What needs to happen for the signal to change? */}
+          <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
+            <h4 className="text-xs md:text-sm font-extrabold text-white flex items-center gap-2 mb-3">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              Hoja de Ruta: ¿Qué tendría que suceder para que el sistema cambie de señal?
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/30 text-slate-300">
+                <span className="font-bold text-emerald-300 flex items-center gap-1.5 mb-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Para pasar a Modo Alcista (Verde)
+                </span>
+                El bono <strong>HYG</strong> debe cerrar de nuevo por encima de su media móvil de 20 semanas y el índice de confluencia superar los <strong>60 puntos</strong>. Solo entonces el dinero inteligente habrá vuelto a respaldar las subidas.
+              </div>
+
+              <div className="p-3 rounded-lg bg-blue-950/20 border border-blue-500/30 text-slate-300">
+                <span className="font-bold text-blue-300 flex items-center gap-1.5 mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Para activar Gatillo de Compra
+                </span>
+                El S&P 500 o el Oro deben experimentar una caída rápida de pánico temporal que sitúe su <strong>RSI semanal en ≤ 40</strong>, manteniendo la tendencia de fondo alcista. Ese es el momento de compra asimétrica con stop ceñido.
+              </div>
+
+              <div className="p-3 rounded-lg bg-rose-950/20 border border-rose-500/30 text-slate-300">
+                <span className="font-bold text-rose-300 flex items-center gap-1.5 mb-1">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-400" /> Para pasar a Modo Búnker (Rojo)
+                </span>
+                Si el S&P 500 perfora su media de 50 semanas a la baja o se activa el veto estricto de liquidez neta (Regla R1), se suspenden de inmediato todas las compras y se eleva la liquidez al 75% o más.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
