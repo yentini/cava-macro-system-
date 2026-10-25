@@ -103,8 +103,8 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
         </p>
       </div>
 
-      {/* 3 Clear Synthesis Pillars (Traffic Lights) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-5">
+      {/* 4 Clear Synthesis Pillars (Traffic Lights) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-5">
         {/* Pillar 1: Liquidity & Smart Money */}
         <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
           <div>
@@ -138,7 +138,7 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
           <div>
             <div className="flex items-center justify-between text-xs font-bold mb-1.5">
               <span className="text-slate-300 flex items-center gap-1.5">
-                <span className="text-base">📈</span> 2. Tendencia de Fondo
+                <span className="text-base">📈</span> 2. Tendencia S&P 500
               </span>
               <span
                 className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
@@ -152,7 +152,7 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               {indicators.spy_bullish
-                ? 'El S&P 500 cotiza por encima de la media de 50 semanas (Línea Azul). Estructuralmente la tendencia es alcista.'
+                ? 'El S&P 500 cotiza sobre su media de 50 semanas. La tendencia estructural primaria permanece alcista.'
                 : 'La bolsa ha perforado su soporte estructural de 50 semanas. Prohibido abrir posiciones compradoras.'}
             </p>
           </div>
@@ -161,37 +161,66 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
           </div>
         </div>
 
-        {/* Pillar 3: Tactical Opportunity */}
+        {/* Pillar 3: Scarcity & Anti-Debasement (Gold + Bitcoin + Nominal Illusion) */}
         <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs font-bold mb-1.5">
               <span className="text-slate-300 flex items-center gap-1.5">
-                <span className="text-base">🎯</span> 3. Gatillo de Entrada
+                <span className="text-base">₿</span> 3. Oro & Bitcoin (21M)
+              </span>
+              <span
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                  (indicators.btc_bullish ?? true) && indicators.gold_bullish
+                    ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                    : 'bg-amber-500/20 text-amber-300'
+                }`}
+              >
+                {(indicators.btc_bullish ?? true) ? '🟢 Reserva Activa' : '🟡 Alerta Stop'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Blindaje frente a la degradación monetaria. Ilusión nominal S&P/Liq en{' '}
+              <strong className="text-slate-200">{indicators.spy_net_liquidity_diff_pct !== undefined ? `${indicators.spy_net_liquidity_diff_pct > 0 ? '+' : ''}${indicators.spy_net_liquidity_diff_pct}%` : '+1.8%'}</strong>.
+            </p>
+          </div>
+          <div className="mt-2.5 pt-2 border-t border-slate-800/60 text-[11px] font-mono text-slate-400">
+            BTC EMA 50W: <strong className={(indicators.btc_bullish ?? true) ? 'text-orange-400' : 'text-rose-400'}>{indicators.btc_diff_pct !== undefined ? `${indicators.btc_diff_pct > 0 ? '+' : ''}${indicators.btc_diff_pct}%` : '+10.3%'}</strong>
+          </div>
+        </div>
+
+        {/* Pillar 4: Tactical Opportunity Trigger */}
+        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+              <span className="text-slate-300 flex items-center gap-1.5">
+                <span className="text-base">🎯</span> 4. Gatillo de Entrada
               </span>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                {indicators.spy_oversold || indicators.gold_oversold ? '🔥 Gatillo Activo' : '⚪ En Espera'}
+                {indicators.spy_oversold || indicators.gold_oversold || indicators.btc_oversold ? '🔥 Gatillo Activo' : '⚪ En Espera'}
               </span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               {indicators.spy_oversold
-                ? '¡Sobreventa táctica en S&P 500! Momento propicio para comprar con descuento y stop ajustado.'
+                ? '¡Sobreventa táctica en S&P 500! Compras asimétricas con stop bajo mínimo semanal.'
                 : indicators.gold_oversold
-                ? '¡Sobreventa táctica en Oro! Momento de compras asimétricas con descuento.'
-                : 'No hay sobreventa extrema hoy (RSI en rango medio). Paciencia: no comprar en subidas verticales sin descuento.'}
+                ? '¡Sobreventa táctica en Oro! Descuento para acumular activo duro.'
+                : indicators.btc_oversold
+                ? '¡Sobreventa táctica en Bitcoin! Soporte en media de 50 semanas.'
+                : 'Sin sobreventa extrema hoy. Paciencia: esperar descansos para comprar con asimetría favorable.'}
             </p>
           </div>
           <div className="mt-2.5 pt-2 border-t border-slate-800/60 text-[11px] font-mono text-slate-400">
-            RSI S&P: <strong className="text-slate-200">{indicators.spy_rsi14 ?? 60}</strong> · RSI Oro: <strong className="text-slate-200">{indicators.gold_rsi14}</strong>
+            RSI S&P: <strong className="text-slate-200">{indicators.spy_rsi14 ?? 60}</strong> · Oro: <strong className="text-slate-200">{indicators.gold_rsi14}</strong> · BTC: <strong className="text-slate-200">{indicators.btc_rsi14 ?? 56}</strong>
           </div>
         </div>
       </div>
 
-      {/* Action Guidance Footnote */}
+      {/* Action Guidance Footnote (All 4 Asset Classes) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-xs gap-3 mb-4">
         <div className="flex items-center gap-2">
           <Wallet className="w-4 h-4 text-amber-400 shrink-0" />
           <span className="text-amber-200 font-medium">
-            <strong>Plan Operativo Inmediato:</strong> {decision.action_sp500} · {decision.action_gold}
+            <strong>Plan Operativo Inmediato:</strong> S&P 500: {decision.action_sp500} · Oro: {decision.action_gold} · ₿ Bitcoin: {decision.action_btc || 'MANTENER (STOP EMA 50W)'}
           </span>
         </div>
         <button
@@ -215,7 +244,7 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
             </h4>
             <div className="space-y-3 text-xs text-slate-300 leading-relaxed font-normal">
               <p>
-                En el análisis macro de José Luis Cava, <strong>el mercado de acciones (S&P 500) es siempre el último en enterarse de los problemas</strong>. Los inversores minoristas suelen fijarse únicamente en si el gráfico del S&P 500 sigue subiendo, pero el <em>«dinero inteligente»</em> (grandes fondos de inversión institucional y mesas de tesorería) opera primero en los mercados de crédito y liquidez.
+                En el análisis macro de José Luis Cava, <strong>el mercado de acciones (S&P 500) es siempre el último en enterarse de los problemas</strong>. Los inversores minoristas suelen fijarse únicamente en si el gráfico del S&P 500 sigue subiendo, pero el <em>«dinero inteligente»</em> (grandes fondos de inversión institucional y mesas de tesorería) opera primero en los mercados de crédito, liquidez y activos de oferta fija.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
@@ -231,6 +260,20 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
                     2. La Gasolina del Sistema (Liquidez Neta de la Fed):
                   </span>
                   La liquidez real disponible se calcula como: <code>Balance Fed − Cuenta del Tesoro (TGA) − Repo Inverso (RRP)</code>. Cuando el Tesoro estadounidense drena liquidez emitiendo deuda masiva o el balance se reduce, la bolsa pierde soporte fundamental y cualquier choque genera caídas pronunciadas.
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-lg">
+                  <span className="font-bold text-orange-400 block mb-1">
+                    3. Degradación Monetaria y Oferta Fija (Oro & Bitcoin):
+                  </span>
+                  Desde la ruptura del patrón oro en 1971 por Nixon, el dinero fiat sufre una constante pérdida de poder adquisitivo para licuar deuda pública. El sistema asigna capital a activos inalterables: <strong>Oro físico</strong> y los <strong>21 millones de Bitcoin</strong>, siempre que coticen sobre su media móvil de 50 semanas.
+                </div>
+
+                <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-lg">
+                  <span className="font-bold text-cyan-400 block mb-1">
+                    4. El Filtro de Ilusión Nominal (S&P 500 / Liquidez):
+                  </span>
+                  Compara si la subida del índice bursátil es crecimiento real de beneficios o una simple inflación facial causada por la depreciación del dólar. Si el ratio S&P/Liquidez o S&P/Oro diverge a la baja, el sistema eleva la vigilancia de stops.
                 </div>
               </div>
             </div>
@@ -254,7 +297,7 @@ export const ExecutiveBriefing: React.FC<ExecutiveBriefingProps> = ({ decision, 
                 <span className="font-bold text-blue-300 flex items-center gap-1.5 mb-1">
                   <Sparkles className="w-3.5 h-3.5 text-blue-400" /> Para activar Gatillo de Compra
                 </span>
-                El S&P 500 o el Oro deben experimentar una caída rápida de pánico temporal que sitúe su <strong>RSI semanal en ≤ 40</strong>, manteniendo la tendencia de fondo alcista. Ese es el momento de compra asimétrica con stop ceñido.
+                El S&P 500, el Oro o Bitcoin deben experimentar una caída rápida de pánico temporal que sitúe su <strong>RSI semanal en ≤ 40</strong>, manteniendo la tendencia de fondo alcista. Ese es el momento de compra asimétrica con stop ceñido.
               </div>
 
               <div className="p-3 rounded-lg bg-rose-950/20 border border-rose-500/30 text-slate-300">
