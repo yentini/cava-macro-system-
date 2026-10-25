@@ -234,6 +234,7 @@ export const App: React.FC = () => {
                   spyData={data.charts.spy}
                   goldData={data.charts.gold}
                   hygData={data.charts.hyg}
+                  btcData={data.charts.btc}
                 />
               </div>
             )}
@@ -399,6 +400,7 @@ export const App: React.FC = () => {
                 spyData={data.charts.spy}
                 goldData={data.charts.gold}
                 hygData={data.charts.hyg}
+                btcData={data.charts.btc}
               />
             </CollapsibleSection>
           </div>

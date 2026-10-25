@@ -290,7 +290,16 @@ def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[Char
         dxy_value=101.8,
         is_options_window=is_options_expiration_window(),
         days_to_next_options=54,
-        next_options_date="18/12/2026"
+        next_options_date="18/12/2026",
+        btc_price=67500.0,
+        btc_ema50=61200.0,
+        btc_diff_pct=round(((67500.0 - 61200.0) / 61200.0) * 100, 2),
+        btc_bullish=True,
+        btc_rsi14=58.5,
+        btc_oversold=False,
+        spy_net_liquidity_ratio=round(586.40 / 5.80, 2),
+        spy_net_liquidity_diff_pct=round(9.56 - 0.54, 2),
+        spy_gold_ratio=round(586.40 / 252.80, 2)
     )
 
     dates = [(now - timedelta(weeks=i)).strftime("%Y-%m-%d") for i in range(52, -1, -1)]
@@ -352,10 +361,32 @@ def generate_mock_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[Char
             )
         )
 
+    # BTC: Bitcoin halving cycle and monetary debasement hedge
+    btc_chart = []
+    for i, d in enumerate(dates):
+        t = i / 51.0
+        c = round(42000.0 + (t * 22000.0) + 12000.0 / (1.0 + np.exp(-(t - 0.4) * 14.0)) + np.sin(t * 12.0) * 2500.0, 2)
+        o = round(c - (500.0 * np.sin(i * 1.4)), 2)
+        h = round(max(c, o) + abs(np.cos(i * 2.0)) * 1200.0 + 400.0, 2)
+        l = round(min(c, o) - abs(np.sin(i * 2.2)) * 1100.0 - 300.0, 2)
+        btc_chart.append(
+            ChartDataPoint(
+                date=d,
+                price=c,
+                ema=round(41000.0 + (t * 20200.0), 2),
+                rsi=round(55.0 + 15.0 * np.sin(i / 4.5), 1),
+                open=o,
+                high=h,
+                low=l,
+                volume=round(24000000000 + 6000000000 * np.sin(i / 4.0), 0)
+            )
+        )
+
     charts = {
         "spy": spy_chart,
         "gold": gold_chart,
-        "hyg": hyg_chart
+        "hyg": hyg_chart,
+        "btc": btc_chart
     }
     return indicators, charts
 
@@ -438,11 +469,52 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
         hyg_ema20 = float(last_hyg["EMA20"])
         hyg_diff = round(((hyg_price - hyg_ema20) / hyg_ema20) * 100, 2)
 
+        # Fetch Bitcoin (BTC-USD)
+        btc_price = 67500.0
+        btc_ema50 = 61200.0
+        btc_diff = 10.29
+        btc_rsi = 58.5
+        btc_chart = []
+        try:
+            btc_df = fetch_yfinance_weekly("BTC-USD", period="3y")
+            if not btc_df.empty and len(btc_df) >= 20:
+                btc_df["EMA50"] = calculate_ema(btc_df["Close"], 50)
+                btc_df["RSI14"] = calculate_rsi(btc_df["Close"], 14)
+                last_btc = btc_df.iloc[-1]
+                btc_price = float(last_btc["Close"])
+                btc_ema50 = float(last_btc["EMA50"])
+                btc_diff = round(((btc_price - btc_ema50) / btc_ema50) * 100, 2)
+                btc_rsi = float(last_btc["RSI14"])
+
+                btc_tail = btc_df.tail(52)
+                btc_chart = [
+                    ChartDataPoint(
+                        date=idx.strftime("%Y-%m-%d"),
+                        price=round(float(row["Close"]), 2),
+                        ema=round(float(row["EMA50"]), 2),
+                        rsi=round(float(row["RSI14"]), 1),
+                        open=round(float(row["Open"]), 2) if "Open" in row and not pd.isna(row["Open"]) else None,
+                        high=round(float(row["High"]), 2) if "High" in row and not pd.isna(row["High"]) else None,
+                        low=round(float(row["Low"]), 2) if "Low" in row and not pd.isna(row["Low"]) else None,
+                        volume=round(float(row["Volume"]), 0) if "Volume" in row and not pd.isna(row["Volume"]) else None
+                    )
+                    for idx, row in btc_tail.iterrows()
+                ]
+        except Exception as exc:
+            logger.warning("Could not fetch BTC-USD: %s", exc)
+
+        if not btc_chart:
+            btc_chart = generate_fallback_chart_history("BTC-USD", "1y", "1wk")
+
         (
             fed_bal, fed_chg, oas_spread, gdp_growth, curve_10y2y,
             net_liq_t, net_liq_chg, tga_b, rrp_b
         ) = fetch_fred_indicators(settings.fred_api_key)
         is_opt_win, opt_days, opt_date = calculate_options_expiration_metrics()
+
+        spy_net_liq_ratio = round(spy_price / net_liq_t, 2) if net_liq_t > 0 else 101.0
+        spy_net_liq_diff = round(spy_diff - net_liq_chg, 2)
+        spy_gld_ratio = round(spy_price / gold_price, 2) if gold_price > 0 else 2.32
 
         indicators = TechnicalIndicators(
             spy_price=round(spy_price, 2),
@@ -482,7 +554,16 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
             dxy_value=dxy_val,
             is_options_window=is_opt_win,
             days_to_next_options=opt_days,
-            next_options_date=opt_date
+            next_options_date=opt_date,
+            btc_price=round(btc_price, 2),
+            btc_ema50=round(btc_ema50, 2),
+            btc_diff_pct=btc_diff,
+            btc_bullish=(btc_price > btc_ema50),
+            btc_rsi14=round(btc_rsi, 1),
+            btc_oversold=(btc_rsi <= 40.0),
+            spy_net_liquidity_ratio=spy_net_liq_ratio,
+            spy_net_liquidity_diff_pct=spy_net_liq_diff,
+            spy_gold_ratio=spy_gld_ratio
         )
 
         # Build chart series (last 52 weeks)
@@ -531,7 +612,8 @@ def fetch_live_indicators() -> Tuple[TechnicalIndicators, Dict[str, List[ChartDa
         charts = {
             "spy": spy_chart,
             "gold": gold_chart,
-            "hyg": hyg_chart
+            "hyg": hyg_chart,
+            "btc": btc_chart
         }
         return indicators, charts
     except Exception as exc:
@@ -562,7 +644,7 @@ def generate_fallback_chart_history(
     interval: str
 ) -> List[ChartDataPoint]:
     """Generate realistic synthetic historical candles with distinct asset profiles when offline."""
-    base_prices = {"SPY": 586.0, "GLD": 252.0, "HYG": 79.0}
+    base_prices = {"SPY": 586.0, "GLD": 252.0, "HYG": 79.0, "BTC": 67500.0, "BTC-USD": 67500.0}
     ticker_u = ticker.upper().strip()
     base = base_prices.get(ticker_u, 100.0)
 
@@ -606,6 +688,13 @@ def generate_fallback_chart_history(
             alpha = 2.0 / 51.0
             ema_val = (current_price * alpha) + (ema_val * (1.0 - alpha))
             rsi_val = 52.0 + np.sin(t * 8.0) * 18.0
+        elif ticker_u in ("BTC", "BTC-USD"):
+            # Bitcoin profile: Halving cycle upward trend and scarce digital asset volatility
+            surge = 18000.0 / (1.0 + np.exp(-(t - 0.4) * 14.0))
+            current_price = (base * 0.65) + (t * (base * 0.25)) + surge + np.sin(t * 14.0) * 2200.0
+            alpha = 2.0 / 51.0
+            ema_val = (current_price * alpha) + (ema_val * (1.0 - alpha))
+            rsi_val = 58.0 + np.sin(t * 10.0) * 16.0
         else:
             # HYG profile: Tight credit spread channel
             current_price = (base * 0.97) + (base * 0.03 * np.sin(t * 6.0)) + ((i % 4) - 1.5) * 0.2

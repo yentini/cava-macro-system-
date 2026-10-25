@@ -132,6 +132,33 @@ const GLOSSARY_TERMS: GlossaryTerm[] = [
     detailedDesc: 'Para José Luis Cava, el oro no es una inversión para hacerse rico de la noche a la mañana, sino el gran reaseguro de la cartera frente a la pérdida de poder adquisitivo del dinero fiduciario provocada por el gasto público descontrolado y los déficits fiscales crónicos de los gobiernos.',
     cavaRule: 'Mantener siempre entre un 15% y un 25% de la cartera en oro físico o ETCs respaldados en oro físico.',
     practicalExample: 'Durante las grandes crisis inflacionarias o caídas de divisas, el oro preserva el poder de compra real mientras el dinero en cuenta se devalúa.'
+  },
+  {
+    id: 'debasement',
+    term: 'Degradación Monetaria y Represión Financiera (Nixon 1971)',
+    tag: 'Liquidez',
+    shortDesc: 'La pérdida sistemática de poder adquisitivo del dinero fiduciario mediante inflación y expansión de balances para licuar deudas soberanas.',
+    detailedDesc: 'Desde que el presidente Nixon suspendió en agosto de 1971 la convertibilidad del dólar en oro, las monedas globales pasaron a ser puramente fiduciarias. Para financiar déficits descontrolados y deudas de más del 120% del PIB sin subir impuestos directos, los bancos centrales recurren a la represión financiera: tipos de interés reales por debajo de la inflación y emisión monetaria continua. Quien ahorra en papel moneda o en cuentas corrientes bancarias sufre una expropiación silenciosa de su patrimonio.',
+    cavaRule: 'Jamás guardes tu patrimonio a largo plazo en dinero fiduciario. La degradación monetaria obliga a mantener activos con oferta estrictamente limitada: Renta Variable productiva (S&P 500), Oro físico y Bitcoin (21M).',
+    practicalExample: 'Un dólar estadounidense de 1971 ha perdido más del 87% de su poder adquisitivo en términos de bienes reales y más del 98% medido en onzas de oro.'
+  },
+  {
+    id: 'btc-scarcity',
+    term: 'Bitcoin (BTC) como Reserva Descentralizada de Oferta Fija (21M)',
+    tag: 'Estrategia',
+    shortDesc: 'El primer activo monetario digital con oferta matemáticamente inelástica fijada en 21 millones de unidades.',
+    detailedDesc: 'Para José Luis Cava, Bitcoin representa la alternativa tecnológica y descentralizada a la degradación monetaria. Mientras la Reserva Federal y los gobiernos pueden imprimir trillones con un clic de ratón, nadie puede alterar el límite de 21 millones de Bitcoin. En la matriz táctica de Cava, Bitcoin se incorpora con un 5% de ponderación en fases expansivas como acelerador de crecimiento patrimonial, cerrándose la posición o reduciéndose al 0% en fases de alerta o contracción de crédito.',
+    cavaRule: 'Bitcoin se opera con stop técnico semanal en su EMA 50W. Si el precio cotiza sobre la EMA 50W y el crédito HYG acompaña, se mantiene en cartera como blindaje patrimonial.',
+    practicalExample: 'En una cartera de 60.000 €, se asignan 3.000 € (5%) a Bitcoin durante el Régimen de Expansión, con stop ceñido bajo la media móvil de 50 semanas.'
+  },
+  {
+    id: 'nominal-illusion',
+    term: 'Ilusión Nominal (S&P 500 Deflactado por Liquidez Neta y Oro)',
+    tag: 'Técnico',
+    shortDesc: 'Métrica que evalúa si los máximos históricos de la bolsa son ganancias reales de valor o una simple ilusión provocada por la devaluación del dólar.',
+    detailedDesc: 'Cuando la Reserva Federal inyecta liquidez neta masiva al sistema, el valor facial del S&P 500 sube, pero las empresas no necesariamente valen más: simplemente se necesitan más dólares depreciados para comprar la misma acción. Cava deflacta el precio del S&P 500 dividiéndolo entre la Liquidez Neta de la Fed y entre el precio del Oro. Si el índice en dólares sube pero el ratio S&P/Liquidez o S&P/Oro cae, nos encontramos ante una ilusión nominal: el inversor no se está haciendo más rico, simplemente el dinero se está evaporando.',
+    cavaRule: 'Si el S&P 500 bate máximos pero el ratio S&P / Liquidez Neta o S&P / Oro diverge a la baja, nos encontramos ante una trampa de liquidez. Exige extremar la disciplina de stops.',
+    practicalExample: 'El tacómetro de Ilusión Nominal del sistema CAVA compara el avance relativo del S&P 500 frente a la Liquidez Neta, alertando de divergencias silenciosas.'
   }
 ];
 
@@ -267,12 +294,15 @@ export const CavaTheoryView: React.FC = () => {
               </p>
               <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-3">
                 <span className="text-[11px] font-bold text-emerald-400 block mb-1">Distribución Táctica de Cartera:</span>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono font-bold">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono font-bold">
                   <div className="bg-emerald-950/30 border border-emerald-500/30 p-2 rounded-lg text-emerald-300">
-                    S&P 500: 75%
+                    S&P 500: 70%
                   </div>
                   <div className="bg-amber-950/30 border border-amber-500/30 p-2 rounded-lg text-amber-300">
                     Oro: 15%
+                  </div>
+                  <div className="bg-orange-950/30 border border-orange-500/30 p-2 rounded-lg text-orange-300">
+                    Bitcoin: 5%
                   </div>
                   <div className="bg-blue-950/30 border border-blue-500/30 p-2 rounded-lg text-blue-300">
                     Liquidez: 10%
@@ -299,12 +329,15 @@ export const CavaTheoryView: React.FC = () => {
               </p>
               <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-3">
                 <span className="text-[11px] font-bold text-blue-400 block mb-1">Distribución Táctica de Cartera:</span>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono font-bold">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono font-bold">
                   <div className="bg-blue-950/30 border border-blue-500/30 p-2 rounded-lg text-blue-300">
-                    S&P 500: 60%
+                    S&P 500: 55%
                   </div>
                   <div className="bg-amber-950/30 border border-amber-500/30 p-2 rounded-lg text-amber-300">
                     Oro: 20%
+                  </div>
+                  <div className="bg-orange-950/30 border border-orange-500/30 p-2 rounded-lg text-orange-300">
+                    Bitcoin: 5%
                   </div>
                   <div className="bg-slate-800/80 border border-slate-700 p-2 rounded-lg text-slate-300">
                     Liquidez: 20%
@@ -331,12 +364,15 @@ export const CavaTheoryView: React.FC = () => {
               </p>
               <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-3">
                 <span className="text-[11px] font-bold text-amber-400 block mb-1">Distribución Táctica de Cartera:</span>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono font-bold">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono font-bold">
                   <div className="bg-amber-950/30 border border-amber-500/30 p-2 rounded-lg text-amber-300">
-                    S&P 500: 20% (Stops)
+                    S&P 500: 20%
                   </div>
                   <div className="bg-amber-950/30 border border-amber-500/30 p-2 rounded-lg text-amber-300">
                     Oro: 25%
+                  </div>
+                  <div className="bg-slate-800/50 border border-slate-700/50 p-2 rounded-lg text-slate-400">
+                    Bitcoin: 0%
                   </div>
                   <div className="bg-blue-950/30 border border-blue-500/30 p-2 rounded-lg text-blue-300">
                     Liquidez: 55%
@@ -363,12 +399,15 @@ export const CavaTheoryView: React.FC = () => {
               </p>
               <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 mb-3">
                 <span className="text-[11px] font-bold text-rose-400 block mb-1">Distribución Táctica de Cartera:</span>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono font-bold">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono font-bold">
                   <div className="bg-rose-950/30 border border-rose-500/30 p-2 rounded-lg text-rose-300">
                     S&P 500: 0%
                   </div>
                   <div className="bg-amber-950/30 border border-amber-500/30 p-2 rounded-lg text-amber-300">
                     Oro: 25%
+                  </div>
+                  <div className="bg-slate-800/50 border border-slate-700/50 p-2 rounded-lg text-slate-400">
+                    Bitcoin: 0%
                   </div>
                   <div className="bg-blue-950/30 border border-blue-500/30 p-2 rounded-lg text-blue-300">
                     Liquidez: 75%
@@ -679,8 +718,8 @@ export const CavaTheoryView: React.FC = () => {
               },
               {
                 num: '06',
-                title: 'El Oro es tu seguro contra los políticos y los bancos centrales',
-                desc: 'Los gobiernos gastan más de lo que ingresan y devalúan la moneda fiduciaria. El oro físico preserva el poder adquisitivo intergeneracional.'
+                title: 'El Oro y Bitcoin son tu seguro contra la degradación monetaria',
+                desc: 'Los gobiernos gastan más de lo que ingresan y devalúan la moneda fiduciaria desde 1971. Los activos con oferta estrictamente limitada (oro físico y los 21M de Bitcoin) blindan tu poder adquisitivo.'
               },
               {
                 num: '07',

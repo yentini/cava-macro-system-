@@ -22,10 +22,12 @@ def test_api_status():
     assert "decision" in data
     assert "gauges" in data
     assert "indicators" in data
-    assert len(data["gauges"]) == 11
+    assert len(data["gauges"]) == 13
     gauge_ids = [g["id"] for g in data["gauges"]]
     assert "fed_net_liquidity" in gauge_ids
     assert "hyg_ema" in gauge_ids
+    assert "btc_structural" in gauge_ids
+    assert "nominal_illusion" in gauge_ids
     assert data["decision"]["score_conviction"] > 0
     assert "confluence_index" in data["decision"]
     assert "cross_rules" in data["decision"]

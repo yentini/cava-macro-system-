@@ -73,6 +73,7 @@ export interface DecisionResult {
   status_color: 'green' | 'yellow' | 'red' | 'blue';
   action_sp500: string;
   action_gold: string;
+  action_btc?: string;
   rationale: string;
   layers: LayerEvaluation[];
   confluence_index?: number;
@@ -128,6 +129,17 @@ export interface TechnicalIndicators {
   is_options_window: boolean;
   days_to_next_options?: number;
   next_options_date?: string;
+
+  btc_price?: number;
+  btc_ema50?: number;
+  btc_diff_pct?: number;
+  btc_bullish?: boolean;
+  btc_rsi14?: number;
+  btc_oversold?: boolean;
+
+  spy_net_liquidity_ratio?: number;
+  spy_net_liquidity_diff_pct?: number;
+  spy_gold_ratio?: number;
 }
 
 export interface ChartDataPoint {
@@ -150,5 +162,6 @@ export interface MacroSystemResponse {
     spy: ChartDataPoint[];
     gold: ChartDataPoint[];
     hyg: ChartDataPoint[];
+    btc?: ChartDataPoint[];
   };
 }

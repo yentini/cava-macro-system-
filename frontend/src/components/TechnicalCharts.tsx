@@ -16,9 +16,10 @@ interface TechnicalChartsProps {
   spyData: ChartDataPoint[];
   goldData: ChartDataPoint[];
   hygData: ChartDataPoint[];
+  btcData?: ChartDataPoint[];
 }
 
-type AssetType = 'spy' | 'gold' | 'hyg';
+type AssetType = 'spy' | 'gold' | 'hyg' | 'btc';
 type PeriodType = '6mo' | '1y' | '5y';
 type IntervalType = '1d' | '1wk' | '1mo';
 
@@ -60,13 +61,23 @@ const ASSET_CONFIG: Record<
     priceColor: '#06b6d4',
     emaColor: '#f59e0b',
     subtitle: 'Barómetro de liquidez institucional: el crédito lidera los giros de mercado.'
+  },
+  btc: {
+    ticker: 'BTC-USD',
+    name: 'Bitcoin (BTC)',
+    assetLabel: 'Oferta Fija (21M)',
+    emaLabel: 'Media 50 Semanal',
+    priceColor: '#f97316',
+    emaColor: '#a855f7',
+    subtitle: 'Activo digital escaso y reserva descentralizada frente a la degradación monetaria.'
   }
 };
 
 export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
   spyData,
   goldData,
-  hygData
+  hygData,
+  btcData = []
 }) => {
   const [activeAsset, setActiveAsset] = useState<AssetType>('spy');
   const [period, setPeriod] = useState<PeriodType>('1y');
@@ -86,7 +97,13 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
     // Fast optimistic preview if standard 1y/1wk
     if (period === '1y' && interval === '1wk') {
       const initial =
-        activeAsset === 'spy' ? spyData : activeAsset === 'gold' ? goldData : hygData;
+        activeAsset === 'spy'
+          ? spyData
+          : activeAsset === 'gold'
+          ? goldData
+          : activeAsset === 'hyg'
+          ? hygData
+          : btcData;
       if (initial && initial.length > 0) {
         setChartData(initial);
       }
@@ -114,7 +131,7 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [activeAsset, period, interval, spyData, goldData, hygData]);
+  }, [activeAsset, period, interval, spyData, goldData, hygData, btcData]);
 
   const config = ASSET_CONFIG[activeAsset];
   const activePoint =
@@ -320,6 +337,16 @@ export const TechnicalCharts: React.FC<TechnicalChartsProps> = ({
             }`}
           >
             Bonos Basura (HYG)
+          </button>
+          <button
+            onClick={() => setActiveAsset('btc')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
+              activeAsset === 'btc'
+                ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Bitcoin (BTC)
           </button>
         </div>
       </div>

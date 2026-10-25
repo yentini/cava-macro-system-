@@ -148,7 +148,7 @@ def test_gauge_metrics_generation():
     gauges = build_gauge_metrics(ind, 85, 80)
 
     # Assert
-    assert len(gauges) == 11
+    assert len(gauges) == 13
     gauge_ids = [g.id for g in gauges]
     assert "confluence_index" in gauge_ids
     assert "system_conviction" in gauge_ids
@@ -161,6 +161,8 @@ def test_gauge_metrics_generation():
     assert "us10y_yield" in gauge_ids
     assert "vix_volatility" in gauge_ids
     assert "market_breadth" in gauge_ids
+    assert "btc_structural" in gauge_ids
+    assert "nominal_illusion" in gauge_ids
 
 
 def test_build_hyg_gauge():

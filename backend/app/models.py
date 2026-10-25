@@ -123,6 +123,19 @@ class TechnicalIndicators(BaseModel):
     days_to_next_options: int = 0
     next_options_date: str = ""
 
+    # Bitcoin & Monetary Degradation
+    btc_price: float = 67500.0
+    btc_ema50: float = 61200.0
+    btc_diff_pct: float = 10.29
+    btc_bullish: bool = True
+    btc_rsi14: float = 58.5
+    btc_oversold: bool = False
+
+    # Nominal Illusion & Real Debasement Metrics
+    spy_net_liquidity_ratio: float = 101.0
+    spy_net_liquidity_diff_pct: float = 1.8
+    spy_gold_ratio: float = 2.32
+
 class DecisionResult(BaseModel):
     """Composite Decision Output following Cava's methodology."""
     regime: MarketRegime
@@ -131,6 +144,7 @@ class DecisionResult(BaseModel):
     status_color: str
     action_sp500: str
     action_gold: str
+    action_btc: str = "COMPRA PERIÓDICA / MANTENER"
     rationale: str
     layers: List[LayerEvaluation]
     confluence_index: int = 0  # 0 to 100

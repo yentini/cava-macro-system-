@@ -45,30 +45,35 @@ class RegimeProfile:
     direction: str
     action_sp500: str
     action_gold: str
+    action_btc: str
     rationale: str
 
 
 DEFENSIVE_PROFILE = RegimeProfile(
     MarketRegime.REGIMEN_DEFENSIVO, "RÉGIMEN DEFENSIVO (Riesgo Sistémico)", "red", BEARISH,
     "PAUSAR COMPRAS / ACTIVAR STOPS CEÑIDOS", "MANTENER ORO COMO COBERTURA",
+    "PAUSAR COMPRAS / REFUGIO EN ORO Y MONETARIOS",
     "La liquidez no acompaña y la tendencia está dañada. Prioridad absoluta: proteger capital "
     "y evitar trampas de liquidez.",
 )
 DIVERGENCE_PROFILE = RegimeProfile(
     MarketRegime.DIVERGENCIA_BAJISTA, "DIVERGENCIA BAJISTA (Alerta de Trampa)", "yellow", BEARISH,
     "NO PERSEGUIR PRECIOS / CEÑIR STOPS", "OBSERVAR SOPORTES Y ESPERAR CONFIRMACIÓN",
+    "PAUSAR / VIGILAR SOPORTES SEMANALES",
     "La bolsa sube pero el crédito de alto riesgo cae: el dinero inteligente no valida las "
     "subidas. Riesgo elevado de corrección súbita.",
 )
 EXPANSION_PROFILE = RegimeProfile(
     MarketRegime.EXPANSION_PLENA, "EXPANSIÓN PLENA (Risk-On Total)", "green", BULLISH,
     "APORTACIÓN RECURRENTE SISTEMÁTICA / MANTENER", "MANTENER / ACUMULACIÓN PROGRESIVA",
+    "APORTACIÓN RECURRENTE SISTEMÁTICA / MANTENER",
     "Los motores de fondo están alineados: liquidez abundante, tipos tolerables y tendencia "
     "estructural alcista. Ignorar el ruido de noticias catastrofistas.",
 )
 TRANSITION_PROFILE = RegimeProfile(
     MarketRegime.TRANSICION_NEUTRA, "TRANSICIÓN / ESPERA TÁCTICA", "blue", NEUTRAL,
     "MANTENER ESTRATEGIA BASE", "MANTENER POSICIONES",
+    "MANTENER POSICIONES / NO PERSEGUIR",
     "Mercado sin confluencia clara. No hacer cambios bruscos de cartera.",
 )
 
@@ -83,6 +88,7 @@ def build_opportunity_profile(spy_trigger: bool, gold_trigger: bool) -> RegimePr
         else "MANTENER POSICIONES",
         "GATILLO DE COMPRA ACTIVO (Sobreventa con macro alcista)" if gold_trigger
         else "MANTENER / ACUMULACIÓN PROGRESIVA",
+        "ACUMULAR CON STOP CEÑIDO (Activo escaso)",
         f"Descuento temporal en {targets} con la liquidez y la tendencia de fondo sanas. "
         "Perfil de riesgo/beneficio óptimo para entradas asimétricas ('Home Run').",
     )
@@ -187,6 +193,7 @@ def evaluate_combined_system(ind: TechnicalIndicators) -> DecisionResult:
         status_color=profile.color,
         action_sp500=profile.action_sp500,
         action_gold=profile.action_gold,
+        action_btc=profile.action_btc,
         rationale=build_rationale(profile, cross_rules),
         layers=layers,
         confluence_index=index,
@@ -631,9 +638,80 @@ def build_gauge_metrics(
         rrp_b=getattr(ind, "rrp_billions", 0.24)
     )
 
+    # Gauge 12: Bitcoin (BTC-USD / Cobertura Escasa)
+    btc_p = getattr(ind, "btc_price", 67500.0)
+    btc_ema = getattr(ind, "btc_ema50", 61200.0)
+    btc_diff = getattr(ind, "btc_diff_pct", 10.29)
+    btc_bull = getattr(ind, "btc_bullish", True)
+    btc_gauge = GaugeMetric(
+        id="btc_structural",
+        name="Bitcoin (BTC-USD / 21M)",
+        current_value=round(btc_diff, 2),
+        display_value=f"${btc_p:,.0f} ({btc_diff:+.1f}%)",
+        unit="%",
+        min_value=-30.0,
+        max_value=30.0,
+        zones=[
+            GaugeZone(from_val=-30.0, to_val=-8.0, color="#ef4444", label="Bajista (<-8%)"),
+            GaugeZone(from_val=-8.0, to_val=2.0, color="#f59e0b", label="Transición (-8% a +2%)"),
+            GaugeZone(from_val=2.0, to_val=30.0, color="#10b981", label="Alcista (>+2%)")
+        ],
+        status_label="Alcista Estructural" if btc_bull else "Tendencia Dañada",
+        status_color="green" if btc_bull else "red",
+        description="Oferta matemáticamente fija frente a la degradación monetaria del dinero fiduciario.",
+        what_it_measures=f"Mide el precio de Bitcoin frente a su media móvil estructural de 50 semanas (${btc_ema:,.0f}).",
+        meaning=(
+            f"BTC cotiza un {btc_diff:+.1f}% respecto a su media de 50 semanas. El activo digital escaso acompaña la expansión de la liquidez global."
+            if btc_bull else
+            f"BTC cotiza por debajo de su media de 50 semanas ({btc_diff:+.1f}%). Fase de corrección o absorción de oferta."
+        ),
+        recommendation=(
+            "Acompañar con aportaciones periódicas controladas dentro del tramo de activos escasos de la cartera."
+            if btc_bull else
+            "Pausar compras hasta que el precio reconquiste su soporte semanal estructural."
+        ),
+        how_calculated=f"Cálculo: (Precio BTC ${btc_p:,.0f} - EMA 50W ${btc_ema:,.0f}) / EMA 50W."
+    )
+
+    # Gauge 13: Ilusión Nominal (S&P 500 deflactado por Liquidez Neta)
+    spy_liq_diff = getattr(ind, "spy_net_liquidity_diff_pct", 1.8)
+    spy_liq_ratio = getattr(ind, "spy_net_liquidity_ratio", 101.0)
+    is_real = spy_liq_diff <= 3.0
+    is_bubble = spy_liq_diff > 8.0
+    nominal_illusion_gauge = GaugeMetric(
+        id="nominal_illusion",
+        name="Ilusión Nominal (S&P / Liquidez)",
+        current_value=round(spy_liq_diff, 2),
+        display_value=f"{spy_liq_diff:+.1f}% dif.",
+        unit="%",
+        min_value=-10.0,
+        max_value=20.0,
+        zones=[
+            GaugeZone(from_val=-10.0, to_val=3.0, color="#10b981", label="Respaldo Real (<+3%)"),
+            GaugeZone(from_val=3.0, to_val=8.0, color="#f59e0b", label="Desconexión (3-8%)"),
+            GaugeZone(from_val=8.0, to_val=20.0, color="#ef4444", label="Espejismo / Devaluación (>8%)")
+        ],
+        status_label="Respaldo Real" if is_real else ("Espejismo Devaluación" if is_bubble else "Desconexión"),
+        status_color="green" if is_real else ("red" if is_bubble else "yellow"),
+        description="Mide si el S&P 500 sube por beneficios reales o por pura devaluación del dólar.",
+        what_it_measures="Diferencial entre la subida porcentual del S&P 500 y el crecimiento real de la Liquidez Neta de la Reserva Federal.",
+        meaning=(
+            "La bolsa sube acompasada con la liquidez real. No hay desconexión artificial por inflación de activos."
+            if is_real else
+            "Alerta de Ilusión Nominal: La bolsa sube más rápido que la liquidez real que la sustenta. Las subidas reflejan en gran medida la pérdida de poder de compra del dólar."
+        ),
+        recommendation=(
+            "El rally es estructuralmente sano y tiene combustible bancario detrás."
+            if is_real else
+            "No confundir ganancias nominales con enriquecimiento real: proteger parte de las plusvalías en oro o activos escasos."
+        ),
+        how_calculated=f"Cálculo: Variación S&P 500 vs Variación Liquidez Neta Fed. Ratio actual: {spy_liq_ratio:.1f}x."
+    )
+
     return [
         confluence_gauge, conviction_gauge,
         fed_gauge, hyg_gauge,
         spy_gauge, spy_rsi_gauge, gold_gauge, rsi_gauge,
-        yield_gauge, vix_gauge, breadth_gauge
+        yield_gauge, vix_gauge, breadth_gauge,
+        btc_gauge, nominal_illusion_gauge
     ]

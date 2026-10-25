@@ -11,6 +11,7 @@ interface PortfolioCalculatorProps {
 export interface AllocationBreakdown {
   equitiesPct: number;
   goldPct: number;
+  btcPct: number;
   cashPct: number;
   strategyTitle: string;
   strategyAdvice: string;
@@ -20,26 +21,29 @@ export interface AllocationBreakdown {
 
 export const REGIME_ALLOCATIONS: Record<MarketRegimeType, AllocationBreakdown> = {
   EXPANSION_PLENA: {
-    equitiesPct: 75,
+    equitiesPct: 70,
     goldPct: 15,
+    btcPct: 5,
     cashPct: 10,
     strategyTitle: 'Expansión Máxima · Acompañar la Tendencia',
-    strategyAdvice: 'Aportaciones periódicas al S&P 500 y líderes tecnológicos. Mantener el 15% de oro como seguro de devaluación y 10% en monetarios.',
+    strategyAdvice: 'Aportaciones periódicas al S&P 500. Mantener 15% de oro y 5% en Bitcoin como cobertura contra la degradación monetaria, y 10% en monetarios.',
     actionTag: 'COMPRA PERIÓDICA ACTIVA',
     tagColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
   },
   OPORTUNIDAD_ASIMETRICA: {
-    equitiesPct: 60,
+    equitiesPct: 55,
     goldPct: 20,
+    btcPct: 5,
     cashPct: 20,
     strategyTitle: 'Oportunidad Asimétrica · Despliegue Táctico',
-    strategyAdvice: 'Sobreventa puntual en activo sano (RSI ≤ 40/42). Disparar compras con stop ceñido bajo el mínimo de la semana.',
+    strategyAdvice: 'Sobreventa puntual en activo sano (RSI ≤ 40). Disparar compras con stop ceñido bajo el mínimo semanal en bolsa y acumular activos escasos.',
     actionTag: 'DESPLIEGUE ASIMÉTRICO',
     tagColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30'
   },
   TRANSICION_NEUTRA: {
-    equitiesPct: 45,
+    equitiesPct: 40,
     goldPct: 25,
+    btcPct: 5,
     cashPct: 30,
     strategyTitle: 'Transición · Prudencia y Paciencia',
     strategyAdvice: 'No perseguir precios ni aumentar riesgo. Mantener 30% en fondos monetarios rindiendo sin riesgo y stops de protección en cartera.',
@@ -49,18 +53,20 @@ export const REGIME_ALLOCATIONS: Record<MarketRegimeType, AllocationBreakdown> =
   DIVERGENCIA_BAJISTA: {
     equitiesPct: 20,
     goldPct: 25,
+    btcPct: 0,
     cashPct: 55,
     strategyTitle: 'Divergencia / Trampa · Defensa Anticipada',
-    strategyAdvice: 'El crédito corporativo (HYG) cae mientras la bolsa sube. Las manos fuertes no compran. Ceñir stops al milímetro y elevar liquidez al 55%.',
+    strategyAdvice: 'El crédito corporativo (HYG) cae mientras la bolsa sube. Las manos fuertes no compran. Ceñir stops al milímetro, pausar compras de riesgo y elevar liquidez al 55%.',
     actionTag: 'CEÑIR STOPS / ALERTA',
     tagColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30'
   },
   REGIMEN_DEFENSIVO: {
     equitiesPct: 0,
     goldPct: 25,
+    btcPct: 0,
     cashPct: 75,
     strategyTitle: 'Régimen Defensivo · Preservación Total',
-    strategyAdvice: 'Veto de liquidez o tendencia semanal rota. Fuera de bolsa al 100%. Capital refugiado en monetarios/Letras y oro físico hasta capitulación.',
+    strategyAdvice: 'Veto de liquidez o tendencia semanal rota. Fuera de bolsa y cripto al 100%. Capital refugiado en monetarios al 3%+ y oro físico.',
     actionTag: '100% FUERA DE RIESGO',
     tagColor: 'bg-rose-500/20 text-rose-300 border-rose-500/30'
   }
@@ -82,6 +88,7 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
 
   const equitiesAmount = useMemo(() => Math.round((capital * allocation.equitiesPct) / 100), [capital, allocation]);
   const goldAmount = useMemo(() => Math.round((capital * allocation.goldPct) / 100), [capital, allocation]);
+  const btcAmount = useMemo(() => Math.round((capital * (allocation.btcPct || 0)) / 100), [capital, allocation]);
   const cashAmount = useMemo(() => Math.round((capital * allocation.cashPct) / 100), [capital, allocation]);
 
   const formatCurrency = (val: number) => {
@@ -162,7 +169,7 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
           <div className="flex justify-between text-xs font-medium text-slate-400 mb-2">
             <span>Distribución Porcentual</span>
             <span className="font-mono">
-              RV: {allocation.equitiesPct}% · ORO: {allocation.goldPct}% · LIQ: {allocation.cashPct}%
+              RV {allocation.equitiesPct}% · ORO {allocation.goldPct}% {allocation.btcPct > 0 && `· BTC ${allocation.btcPct}%`} · LIQ {allocation.cashPct}%
             </span>
           </div>
 
@@ -185,6 +192,15 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
                 {allocation.goldPct >= 15 && `ORO ${allocation.goldPct}%`}
               </div>
             )}
+            {allocation.btcPct > 0 && (
+              <div
+                style={{ width: `${allocation.btcPct}%` }}
+                className="bg-gradient-to-r from-orange-500 to-amber-600 flex items-center justify-center text-[11px] font-bold text-white tracking-wide transition-all duration-500"
+                title={`Bitcoin: ${allocation.btcPct}%`}
+              >
+                {`BTC ${allocation.btcPct}%`}
+              </div>
+            )}
             {allocation.cashPct > 0 && (
               <div
                 style={{ width: `${allocation.cashPct}%` }}
@@ -198,25 +214,25 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
         </div>
       </div>
 
-      {/* Exact Euro Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      {/* Exact Euro Cards Grid (4 Asset Classes) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-4">
         {/* Equities Card */}
         <div className="bg-slate-950/70 border border-blue-900/40 rounded-xl p-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs text-blue-400 font-semibold mb-1">
-              <span>📈 RENTA VARIABLE (S&P 500)</span>
+              <span>📈 S&P 500 (RV)</span>
               <span className="font-mono bg-blue-950/80 px-2 py-0.5 rounded text-[11px]">
                 {allocation.equitiesPct}%
               </span>
             </div>
-            <div className="text-2xl font-black text-white font-mono tracking-tight my-1">
+            <div className="text-xl md:text-2xl font-black text-white font-mono tracking-tight my-1">
               {formatCurrency(equitiesAmount)}
             </div>
           </div>
           <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
             {allocation.equitiesPct > 0
-              ? 'Indexación a S&P 500 y megacaps con stop semanal bajo la EMA 50W.'
-              : 'Posición 100% cerrada o con coberturas activas.'}
+              ? 'Indexación a S&P 500 con stop semanal bajo EMA 50W.'
+              : 'Posición 100% cerrada / Fuera de bolsa.'}
           </p>
         </div>
 
@@ -229,12 +245,32 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
                 {allocation.goldPct}%
               </span>
             </div>
-            <div className="text-2xl font-black text-white font-mono tracking-tight my-1">
+            <div className="text-xl md:text-2xl font-black text-white font-mono tracking-tight my-1">
               {formatCurrency(goldAmount)}
             </div>
           </div>
           <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-            Cobertura estructural obligatoria de Cava contra la devaluación monetaria y déficit fiscal.
+            Reaseguro patrimonial frente a la devaluación del dinero fiduciario.
+          </p>
+        </div>
+
+        {/* Bitcoin Card */}
+        <div className="bg-slate-950/70 border border-orange-900/40 rounded-xl p-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between text-xs text-orange-400 font-semibold mb-1">
+              <span>₿ BITCOIN (BTC)</span>
+              <span className="font-mono bg-orange-950/80 px-2 py-0.5 rounded text-[11px]">
+                {allocation.btcPct}%
+              </span>
+            </div>
+            <div className="text-xl md:text-2xl font-black text-white font-mono tracking-tight my-1">
+              {formatCurrency(btcAmount)}
+            </div>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+            {allocation.btcPct > 0
+              ? 'Oferta fija (21M). Activo escaso digital anti-degradación.'
+              : '0% asignación en regímenes defensivos o divergentes.'}
           </p>
         </div>
 
@@ -242,17 +278,17 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
         <div className="bg-slate-950/70 border border-emerald-900/40 rounded-xl p-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs text-emerald-400 font-semibold mb-1">
-              <span>💶 LIQUIDEZ / MONETARIOS</span>
+              <span>💧 FONDOS MONETARIOS</span>
               <span className="font-mono bg-emerald-950/80 px-2 py-0.5 rounded text-[11px]">
                 {allocation.cashPct}%
               </span>
             </div>
-            <div className="text-2xl font-black text-white font-mono tracking-tight my-1">
+            <div className="text-xl md:text-2xl font-black text-white font-mono tracking-tight my-1">
               {formatCurrency(cashAmount)}
             </div>
           </div>
           <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-            Fondos monetarios al 3.5%-4% o Letras del Tesoro a corto plazo. Reserva para compras tácticas.
+            Pólvora seca rindiendo al 3%+ sin volatilidad, lista para compras asimétricas.
           </p>
         </div>
       </div>
