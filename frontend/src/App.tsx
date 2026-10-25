@@ -9,6 +9,7 @@ import { PortfolioCalculator, REGIME_ALLOCATIONS } from './components/PortfolioC
 import { GaugeChart } from './components/GaugeChart';
 import { ConfluenceMatrix } from './components/ConfluenceMatrix';
 import { TechnicalCharts } from './components/TechnicalCharts';
+import { CavaTheoryView } from './components/CavaTheoryView';
 import { MobileBottomNav, MobileTab } from './components/MobileBottomNav';
 import {
   Compass,
@@ -26,6 +27,7 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'auto' | 'mobile' | 'desktop'>('auto');
+  const [activeView, setActiveView] = useState<'dashboard' | 'theory'>('dashboard');
   const [mobileTab, setMobileTab] = useState<MobileTab>('decision');
   const [isMobileScreen, setIsMobileScreen] = useState(false);
 
@@ -119,6 +121,15 @@ export const App: React.FC = () => {
         isRefreshing={isRefreshing}
         viewMode={viewMode}
         setViewMode={setViewMode}
+        activeView={activeView}
+        setActiveView={(view) => {
+          setActiveView(view);
+          if (view === 'theory' && isMobileView) {
+            setMobileTab('theory');
+          } else if (view === 'dashboard' && isMobileView && mobileTab === 'theory') {
+            setMobileTab('decision');
+          }
+        }}
       />
 
       {/* Main Content Area */}
@@ -128,6 +139,10 @@ export const App: React.FC = () => {
           /* MÓVIL (PWA APP-LIKE VIEW)                                */
           /* ======================================================== */
           <div className="space-y-4 animate-fade-in">
+            {mobileTab === 'theory' && (
+              <CavaTheoryView />
+            )}
+
             {mobileTab === 'decision' && (
               <div className="space-y-4">
                 <RegimeBanner decision={data.decision} />
@@ -223,9 +238,14 @@ export const App: React.FC = () => {
               </div>
             )}
           </div>
+        ) : activeView === 'theory' ? (
+          /* ======================================================== */
+          /* ESCRITORIO: VISTA TEORÍA DE CAVA                         */
+          /* ======================================================== */
+          <CavaTheoryView />
         ) : (
           /* ======================================================== */
-          /* ESCRITORIO (FULL-SCREEN EXPANSIVE DESKTOP VIEW)         */
+          /* ESCRITORIO: DASHBOARD TÁCTICO                           */
           /* ======================================================== */
           <div className="space-y-6 animate-fade-in">
             {/* Top Section: Master Decision Banner */}
@@ -387,7 +407,17 @@ export const App: React.FC = () => {
 
       {/* Mobile Bottom Fixed Navigation Bar */}
       {isMobileView && (
-        <MobileBottomNav activeTab={mobileTab} setActiveTab={setMobileTab} />
+        <MobileBottomNav
+          activeTab={mobileTab}
+          setActiveTab={(tab) => {
+            setMobileTab(tab);
+            if (tab === 'theory') {
+              setActiveView('theory');
+            } else {
+              setActiveView('dashboard');
+            }
+          }}
+        />
       )}
     </div>
   );

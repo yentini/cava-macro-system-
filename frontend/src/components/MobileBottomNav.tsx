@@ -1,7 +1,7 @@
 import React from 'react';
-import { Compass, Gauge, Layers, LineChart } from 'lucide-react';
+import { Compass, Gauge, Layers, LineChart, BookOpen } from 'lucide-react';
 
-export type MobileTab = 'decision' | 'gauges' | 'matrix' | 'charts';
+export type MobileTab = 'decision' | 'gauges' | 'matrix' | 'charts' | 'theory';
 
 interface MobileBottomNavProps {
   activeTab: MobileTab;
@@ -14,6 +14,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
     { id: 'gauges' as MobileTab, label: 'Tacómetros', icon: Gauge },
     { id: 'matrix' as MobileTab, label: 'Confluencia', icon: Layers },
     { id: 'charts' as MobileTab, label: 'Gráficos', icon: LineChart },
+    { id: 'theory' as MobileTab, label: 'Teoría Cava', icon: BookOpen },
   ];
 
   return (

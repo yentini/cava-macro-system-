@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RefreshCw, Send, Smartphone, Monitor, Shield, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, Send, Smartphone, Monitor, Shield, CheckCircle2, BookOpen, SlidersHorizontal } from 'lucide-react';
 import { triggerTelegramAlert } from '../services/api';
 
 interface HeaderProps {
@@ -8,6 +8,8 @@ interface HeaderProps {
   isRefreshing: boolean;
   viewMode: 'auto' | 'mobile' | 'desktop';
   setViewMode: (mode: 'auto' | 'mobile' | 'desktop') => void;
+  activeView: 'dashboard' | 'theory';
+  setActiveView: (view: 'dashboard' | 'theory') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +18,8 @@ export const Header: React.FC<HeaderProps> = ({
   isRefreshing,
   viewMode,
   setViewMode,
+  activeView,
+  setActiveView,
 }) => {
   const [telegramStatus, setTelegramStatus] = useState<string | null>(null);
   const [isSendingTelegram, setIsSendingTelegram] = useState(false);
@@ -40,25 +44,53 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 bg-[#0b0f19]/90 backdrop-blur-md border-b border-gray-800/80 px-4 py-3">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Brand */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center shadow-lg shadow-yellow-500/20 text-black font-black">
-            <Shield className="w-6 h-6 text-black fill-black" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-black tracking-tight text-white">
-                CAVA <span className="text-yellow-400 font-normal text-sm">MACRO SYSTEM</span>
-              </h1>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                v1.0
-              </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center shadow-lg shadow-yellow-500/20 text-black font-black">
+              <Shield className="w-6 h-6 text-black fill-black" />
             </div>
-            <p className="text-xs text-gray-400">
-              Sistema Táctico de Inversión Reactiva — Cava Methodology
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black tracking-tight text-white">
+                  CAVA <span className="text-yellow-400 font-normal text-sm">MACRO SYSTEM</span>
+                </h1>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                  v1.0
+                </span>
+              </div>
+              <p className="text-xs text-gray-400">
+                Sistema Táctico de Inversión Reactiva — Cava Methodology
+              </p>
+            </div>
           </div>
+        </div>
+
+        {/* Primary Navigation: Dashboard vs Teoría */}
+        <div className="flex items-center bg-gray-950/90 border border-gray-800 rounded-xl p-1 text-xs self-start md:self-auto shadow-inner">
+          <button
+            onClick={() => setActiveView('dashboard')}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition cursor-pointer ${
+              activeView === 'dashboard'
+                ? 'bg-yellow-500 text-slate-950 shadow-md font-black'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Dashboard Táctico</span>
+          </button>
+          <button
+            onClick={() => setActiveView('theory')}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition cursor-pointer ${
+              activeView === 'theory'
+                ? 'bg-yellow-500 text-slate-950 shadow-md font-black'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Teoría de Cava</span>
+          </button>
         </div>
 
         {/* Controls */}
