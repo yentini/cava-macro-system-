@@ -5,9 +5,10 @@ interface PortfolioCalculatorProps {
   regime: MarketRegimeType;
   confluenceIndex?: number;
   scoreConviction?: number;
+  embedded?: boolean;
 }
 
-interface AllocationBreakdown {
+export interface AllocationBreakdown {
   equitiesPct: number;
   goldPct: number;
   cashPct: number;
@@ -17,7 +18,7 @@ interface AllocationBreakdown {
   tagColor: string;
 }
 
-const REGIME_ALLOCATIONS: Record<MarketRegimeType, AllocationBreakdown> = {
+export const REGIME_ALLOCATIONS: Record<MarketRegimeType, AllocationBreakdown> = {
   EXPANSION_PLENA: {
     equitiesPct: 75,
     goldPct: 15,
@@ -70,7 +71,8 @@ const CAPITAL_PRESETS = [5000, 10000, 25000, 50000, 100000];
 export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
   regime,
   confluenceIndex = 80,
-  scoreConviction = 85
+  scoreConviction = 85,
+  embedded = false
 }) => {
   const [capital, setCapital] = useState<number>(10000);
 
@@ -86,31 +88,32 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
     return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
   };
 
-  return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/80 gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xl">🧮</span>
-            <h2 className="text-lg font-bold text-white tracking-wide">
-              Calculadora Táctica de Asignación de Capital
-            </h2>
+  const bodyContent = (
+    <>
+      {!embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800/80 gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🧮</span>
+              <h2 className="text-lg font-bold text-white tracking-wide">
+                Calculadora Táctica de Asignación de Capital
+              </h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Distribución óptima de tu cartera en euros según el régimen macro de José Luis Cava.
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Distribución óptima de tu cartera en euros según el régimen macro de José Luis Cava.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-mono text-slate-400 bg-slate-950/80 px-2.5 py-1 rounded-full border border-slate-800">
-            Confluencia: <strong className="text-yellow-400">{confluenceIndex}/100</strong> · Convicción: <strong className="text-emerald-400">{scoreConviction}%</strong>
-          </span>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${allocation.tagColor}`}>
-            {allocation.actionTag}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400 bg-slate-950/80 px-2.5 py-1 rounded-full border border-slate-800">
+              Confluencia: <strong className="text-yellow-400">{confluenceIndex}/100</strong> · Convicción: <strong className="text-emerald-400">{scoreConviction}%</strong>
+            </span>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${allocation.tagColor}`}>
+              {allocation.actionTag}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Capital Input Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-6 items-center">
@@ -264,6 +267,16 @@ export const PortfolioCalculator: React.FC<PortfolioCalculatorProps> = ({
           {allocation.strategyAdvice}
         </p>
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="space-y-4">{bodyContent}</div>;
+  }
+
+  return (
+    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-md">
+      {bodyContent}
     </div>
   );
 };
