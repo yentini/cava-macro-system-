@@ -100,42 +100,87 @@ def format_regime_change_alert(
     )
     return message
 
-def send_telegram_message(text: str) -> Dict[str, Any]:
-    """Send message via Telegram Bot API."""
-    token = settings.telegram_bot_token
-    chat_id = settings.telegram_chat_id
+def _get_telegram_credentials():
+    """Retrieve Telegram credentials dynamically with fallback to .env file."""
+    import os
+    token = (settings.telegram_bot_token or os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+    chat_id = (settings.telegram_chat_id or os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
 
     if not token or not chat_id:
+        from pathlib import Path
+        env_file = Path(__file__).resolve().parent.parent / ".env"
+        if env_file.exists():
+            try:
+                with open(env_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith("TELEGRAM_BOT_TOKEN=") and not token:
+                            token = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        elif line.startswith("TELEGRAM_CHAT_ID=") and not chat_id:
+                            chat_id = line.split("=", 1)[1].strip().strip('"').strip("'")
+            except Exception as e:
+                logger.warning("Error reading .env directly: %s", e)
+
+    return token, chat_id
+
+def send_telegram_message(text: str) -> Dict[str, Any]:
+    """Send message via Telegram Bot API (supports single or comma-separated chat IDs)."""
+    token, raw_chat_ids = _get_telegram_credentials()
+
+    if not token or not raw_chat_ids:
         logger.warning("Telegram Bot Token or Chat ID not configured.")
         return {
             "success": False,
             "error": "Telegram credentials not configured in environment variables."
         }
 
+    # Support multiple recipients (e.g. "5746616987, 123456789")
+    chat_ids = [cid.strip() for cid in raw_chat_ids.split(",") if cid.strip()]
     api_url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": False
-    }
 
-    try:
+    success_count = 0
+    errors = []
+    last_msg_id = None
+
+    for target_chat in chat_ids:
+        payload = {
+            "chat_id": target_chat,
+            "text": text,
+            "parse_mode": "Markdown",
+            "disable_web_page_preview": False
+        }
+
         try:
-            response = requests.post(api_url, json=payload, timeout=10)
-        except requests.exceptions.SSLError:
-            # Fallback for corporate environments / Windows self-signed cert chains
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            response = requests.post(api_url, json=payload, timeout=10, verify=False)
+            try:
+                response = requests.post(api_url, json=payload, timeout=10)
+            except requests.exceptions.SSLError:
+                # Fallback for corporate environments / Windows self-signed cert chains
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                response = requests.post(api_url, json=payload, timeout=10, verify=False)
 
-        data = response.json()
-        if response.status_code == 200 and data.get("ok"):
-            logger.info("Telegram notification sent successfully to chat %s", chat_id)
-            return {"success": True, "message_id": data["result"]["message_id"]}
-        else:
-            logger.error("Telegram API error: %s", data)
-            return {"success": False, "error": data.get("description", "Unknown error")}
-    except Exception as exc:
-        logger.error("Failed to connect to Telegram API: %s", exc)
-        return {"success": False, "error": str(exc)}
+            data = response.json()
+            if response.status_code == 200 and data.get("ok"):
+                success_count += 1
+                last_msg_id = data["result"]["message_id"]
+                logger.info("Telegram notification sent successfully to chat %s", target_chat)
+            else:
+                err_desc = data.get("description", "Unknown error")
+                logger.error("Telegram API error for chat %s: %s", target_chat, err_desc)
+                errors.append(f"{target_chat}: {err_desc}")
+        except Exception as exc:
+            logger.error("Failed to connect to Telegram API for chat %s: %s", target_chat, exc)
+            errors.append(f"{target_chat}: {str(exc)}")
+
+    if success_count > 0:
+        return {
+            "success": True,
+            "delivered_count": success_count,
+            "message_id": last_msg_id,
+            "errors": errors if errors else None
+        }
+    else:
+        return {
+            "success": False,
+            "error": "; ".join(errors) if errors else "Failed to dispatch Telegram message."
+        }
