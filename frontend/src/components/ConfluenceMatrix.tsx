@@ -79,7 +79,7 @@ export const ConfluenceMatrix: React.FC<ConfluenceMatrixProps> = ({ layers, deci
           </div>
           <p className="text-xs text-gray-400 max-w-md">
             Ponderación cuantitativa continua: 9 indicadores sumando hasta 100 puntos en 3 capas,
-            ajustados por combinaciones críticas de mercado (Reglas R1 a R6).
+            ajustados por combinaciones críticas de mercado (Reglas R1 a R8).
           </p>
         </div>
 

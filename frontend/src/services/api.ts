@@ -125,6 +125,28 @@ export const fallbackMockData: MacroSystemResponse = {
         effect: '+8 puntos',
         explanation: 'Sobreventa en oro físico con tipos de interés tolerables.',
         cava_action: 'Desplegar liquidez reservada.'
+      },
+      {
+        id: 'R7',
+        name: 'Drenaje de Liquidez Neta Fed',
+        condition: 'Liquidez Neta Fed (WALCL - TGA - RRP) variación a 4 semanas < −1,5 %',
+        is_active: false,
+        direction: 'bearish',
+        adjustment: -8,
+        effect: '−8 puntos',
+        explanation: 'Contracción real en el efectivo disponible en el sistema financiero privado.',
+        cava_action: 'Moderar compras y expectativas alcistas.'
+      },
+      {
+        id: 'R8',
+        name: 'Viento de cara por Dólar Fuerte (DXY)',
+        condition: 'Índice Dólar (DXY) ≥ 105,0 (endurecimiento financiero global)',
+        is_active: false,
+        direction: 'bearish',
+        adjustment: -5,
+        effect: '−5 puntos',
+        explanation: 'Dólar muy fuerte drenando liquidez internacional y presionando materias primas.',
+        cava_action: 'Evitar apalancamiento en oro y materias primas.'
       }
     ]
   },

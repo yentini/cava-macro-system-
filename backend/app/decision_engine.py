@@ -131,7 +131,7 @@ def select_regime(index: int, cross_rules: List[CrossRule]) -> Tuple[RegimeProfi
 
 def build_rationale(profile: RegimeProfile, cross_rules: List[CrossRule]) -> str:
     """Append warnings from active cautionary rules that did not set the regime."""
-    warnings = [f"{r.name} ({r.id})" for r in cross_rules if r.is_active and r.id in ("R3", "R4")]
+    warnings = [f"{r.name} ({r.id})" for r in cross_rules if r.is_active and r.id in ("R3", "R4", "R7", "R8")]
     if not warnings:
         return profile.rationale
     return f"{profile.rationale} Avisos activos: {', '.join(warnings)}."

@@ -29,7 +29,7 @@ def test_api_status():
     assert data["decision"]["score_conviction"] > 0
     assert "confluence_index" in data["decision"]
     assert "cross_rules" in data["decision"]
-    assert len(data["decision"]["cross_rules"]) == 6
+    assert len(data["decision"]["cross_rules"]) == 8
 
 def test_api_chart_history():
     # Act: Request chart history for SPY 6mo 1d

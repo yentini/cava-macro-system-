@@ -108,9 +108,37 @@ def test_regimen_defensivo_critical():
     assert "PAUSAR COMPRAS" in decision.action_sp500
     assert decision.score_conviction >= 50
     assert decision.confluence_index <= 35
-    assert len(decision.cross_rules) == 6
+    assert len(decision.cross_rules) == 8
     assert decision.index_explanation != ""
     assert decision.conviction_explanation != ""
+
+
+def test_r7_fed_liquidity_drain():
+    from app.scoring import rule_fed_liquidity_drain
+    ind = create_base_indicators()
+    ind.fed_net_liquidity_change_pct = -2.4  # Acute contraction
+    r7 = rule_fed_liquidity_drain(ind)
+    assert r7.id == "R7"
+    assert r7.is_active is True
+    assert r7.adjustment == -8
+
+    ind.fed_net_liquidity_change_pct = +0.5  # Positive expansion
+    r7_inactive = rule_fed_liquidity_drain(ind)
+    assert r7_inactive.is_active is False
+
+
+def test_r8_dxy_headwind():
+    from app.scoring import rule_dxy_headwind
+    ind = create_base_indicators()
+    ind.dxy_value = 106.2  # Strong dollar headwind
+    r8 = rule_dxy_headwind(ind)
+    assert r8.id == "R8"
+    assert r8.is_active is True
+    assert r8.adjustment == -5
+
+    ind.dxy_value = 101.8  # Normal range
+    r8_inactive = rule_dxy_headwind(ind)
+    assert r8_inactive.is_active is False
 
 def test_gauge_metrics_generation():
     # Arrange

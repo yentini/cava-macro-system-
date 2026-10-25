@@ -365,6 +365,37 @@ def rule_gold_asymmetric_buy(ind: TechnicalIndicators) -> CrossRule:
     )
 
 
+def rule_fed_liquidity_drain(ind: TechnicalIndicators) -> CrossRule:
+    """R7: Fed net liquidity contraction (WALCL - TGA - RRP 4W change < -1.5%)."""
+    chg_pct = getattr(ind, "fed_net_liquidity_change_pct", 0.0)
+    is_active = chg_pct < -1.5
+    return CrossRule(
+        id="R7", name="Drenaje de Liquidez Neta Fed",
+        condition="Liquidez Neta Fed (WALCL - TGA - RRP) variación a 4 semanas < −1,5 %",
+        is_active=is_active,
+        direction=BEARISH, adjustment=-8, effect="−8 puntos → Contracción de Liquidez",
+        explanation="La liquidez neta real disponible en el sistema financiero privado se está drenando "
+                    "(el Tesoro absorbe reservas en el TGA o la Fed retira liquidez). "
+                    "Sin combustible monetario, los múltiplos de valoración bursátiles se comprimen.",
+        cava_action="Moderar compras y expectativas alcistas: sin liquidez expansiva el mercado es vulnerable.",
+    )
+
+
+def rule_dxy_headwind(ind: TechnicalIndicators) -> CrossRule:
+    """R8: Strong dollar index (DXY >= 105.0) exerting global liquidity headwind."""
+    dxy = getattr(ind, "dxy_value", 101.8)
+    is_active = dxy >= 105.0
+    return CrossRule(
+        id="R8", name="Viento de cara por Dólar Fuerte (DXY)",
+        condition="Índice Dólar (DXY) ≥ 105,0 (endurecimiento financiero global)",
+        is_active=is_active,
+        direction=BEARISH, adjustment=-5, effect="−5 puntos → Viento de Cara Global",
+        explanation="Un dólar excesivamente fuerte drena liquidez de los mercados internacionales, "
+                    "encarece la deuda denominada en dólares y suele presionar al oro y materias primas.",
+        cava_action="Mantener mayor prudencia en materias primas y evitar apalancamiento.",
+    )
+
+
 def evaluate_cross_rules(ind: TechnicalIndicators) -> List[CrossRule]:
     """Evaluate all cross rules (active or not) so the UI can show the full matrix."""
     return [
@@ -374,6 +405,8 @@ def evaluate_cross_rules(ind: TechnicalIndicators) -> List[CrossRule]:
         rule_unsupported_euphoria(ind),
         rule_spy_asymmetric_buy(ind),
         rule_gold_asymmetric_buy(ind),
+        rule_fed_liquidity_drain(ind),
+        rule_dxy_headwind(ind),
     ]
 
 
