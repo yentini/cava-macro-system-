@@ -30,6 +30,7 @@ def main():
     logger.info("Evaluated Regime: %s (Conviction: %d%%)", decision.regime_title, decision.score_conviction)
     logger.info("S&P 500 Action: %s", decision.action_sp500)
     logger.info("Gold Action: %s", decision.action_gold)
+    logger.info("Bitcoin Action: %s", getattr(decision, 'action_btc', 'MANTENER'))
 
     # Check for regime transition
     has_changed, prev_regime = check_and_update_regime(
