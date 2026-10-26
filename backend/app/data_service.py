@@ -747,11 +747,21 @@ def fetch_chart_history(
         if (now - cached_ts).total_seconds() < CACHE_TTL_SECONDS:
             return cached_points
 
+    # Buffer lookback range so indicators like EMA50 have sufficient historical bars to converge
+    if interval_clean == "1wk":
+        fetch_range = "5y" if period_clean == "5y" else "3y"
+    elif interval_clean == "1mo":
+        fetch_range = "5y"
+    elif interval_clean == "1d":
+        fetch_range = "5y" if period_clean == "5y" else ("2y" if period_clean == "1y" else "1y")
+    else:
+        fetch_range = period_clean
+
     try:
         # 1. Try direct Yahoo Chart API first (reliable, bypasses yfinance crumb rate limits)
         df = None
         try:
-            df = fetch_yahoo_direct_candles(ticker_clean, range_str=period_clean, interval_str=interval_clean)
+            df = fetch_yahoo_direct_candles(ticker_clean, range_str=fetch_range, interval_str=interval_clean)
         except Exception as direct_err:
             logger.debug("Direct Yahoo chart error for %s: %s", ticker_clean, direct_err)
 
@@ -759,7 +769,7 @@ def fetch_chart_history(
         if df is None or df.empty:
             if yf is not None:
                 sym = ticker_clean
-                df = yf.download(sym, period=period_clean, interval=interval_clean, progress=False)
+                df = yf.download(sym, period=fetch_range, interval=interval_clean, progress=False)
                 if isinstance(df.columns, pd.MultiIndex):
                     df = df.xs(sym, level="Ticker", axis=1) if "Ticker" in df.columns.names else df.droplevel(1, axis=1)
                 df = df.dropna(subset=["Close"])
@@ -770,6 +780,19 @@ def fetch_chart_history(
         ema_span = 20 if ticker_clean == "HYG" or interval_clean == "1mo" else 50
         df["EMA"] = calculate_ema(df["Close"], span=ema_span)
         df["RSI14"] = calculate_rsi(df["Close"], period=14)
+
+        # Slice back to the user's requested display timeframe after indicators have converged
+        if period_clean in ("6mo", "1y"):
+            days = 183 if period_clean == "6mo" else 366
+            try:
+                cutoff = now - timedelta(days=days)
+                if df.index.tz is not None:
+                    cutoff = cutoff.astimezone(df.index.tz)
+                df_sliced = df[df.index >= cutoff]
+                if not df_sliced.empty:
+                    df = df_sliced
+            except Exception as slice_err:
+                logger.debug("Error slicing buffered chart history: %s", slice_err)
 
         # Keep 100% of consecutive trading days for 6mo & 1y; only downsample if > 600 candles
         if len(df) > 600:
