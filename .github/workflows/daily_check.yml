@@ -7,8 +7,8 @@ on:
     paths:
       - '.github/workflows/**'
   schedule:
-    # 21:30 UTC = 22:30 / 23:30 CET (Monday through Friday, after Wall Street closes)
-    - cron: '30 21 * * 1-5'
+    # 21:34 UTC = 22:34 CET (Monday through Friday, after Wall Street closes)
+    - cron: '34 21 * * 1-5'
   workflow_dispatch:
 
 jobs:
