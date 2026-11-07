@@ -25,6 +25,7 @@ app.add_middleware(
     allow_origins=settings.get_cors_origins(),
     allow_origin_regex=(
         r"^(https://.*\.vercel\.app|"
+        r"https?://([a-zA-Z0-9-]+\.)?cabrerizolab\.net(:\d+)?|"
         r"https?://.*\.traefik\.me(:\d+)?|"
         r"https?://pi-server\.local(:\d+)?|"
         r"https?://192\.168\.\d+\.\d+(:\d+)?|"

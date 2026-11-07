@@ -53,7 +53,7 @@ def test_api_chart_history():
 
 def test_api_cors_raspberry_pi_lan():
     # Arrange
-    origin = "http://192.168.1.45:3000"
+    origin = "https://cava.cabrerizolab.net"
 
     # Act
     response = client.options(
