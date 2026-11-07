@@ -23,7 +23,13 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_cors_origins(),
-    allow_origin_regex=r"https://.*\.vercel\.app",
+    allow_origin_regex=(
+        r"^(https://.*\.vercel\.app|"
+        r"https?://.*\.traefik\.me(:\d+)?|"
+        r"https?://pi-server\.local(:\d+)?|"
+        r"https?://192\.168\.\d+\.\d+(:\d+)?|"
+        r"https?://localhost(:\d+)?)$"
+    ),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

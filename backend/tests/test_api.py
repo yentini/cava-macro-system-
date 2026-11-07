@@ -49,3 +49,22 @@ def test_api_chart_history():
     assert "open" in first_pt
     assert "high" in first_pt
     assert "low" in first_pt
+
+
+def test_api_cors_raspberry_pi_lan():
+    # Arrange
+    origin = "http://192.168.1.45:3000"
+
+    # Act
+    response = client.options(
+        "/api/health",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    # Assert
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == origin
+
