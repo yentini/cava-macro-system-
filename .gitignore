@@ -24,6 +24,8 @@ cache/
 *.env.local
 !.env.example
 !*.env.example
+backups/*.sql
+backups/.secrets.env
 
 # Node
 node_modules/
